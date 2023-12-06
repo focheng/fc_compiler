@@ -1,10 +1,10 @@
-package fc.compiler.lexer;
+package fc.compiler.common.lexer;
 
 /**
  * @author FC
  */
 public class Constants {
-	public static final char EOF   = 0x1A;
+	public static final char EOF = 0x1A;    // end of input buffer
 
 	public static final char SPACE = ' ';
 	public static final char TAB   = '\t';

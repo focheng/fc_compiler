@@ -1,6 +1,8 @@
-package fc.compiler.lexer;
+package fc.compiler.common.lexer;
 
 import java.util.Arrays;
+
+import static fc.compiler.common.lexer.Constants.*;
 
 /**
  * @author FC
@@ -33,8 +35,17 @@ public class CodeReader {
 	 * @return next character.
 	 */
 	public char nextChar() {
-		ch = code[++bp];
+		++bp;
+		if (bp < code.length) {
+			ch = code[bp];
+		} else {
+			ch = EOF;
+		}
 		return ch;
+	}
+
+	public boolean hasNext() {
+		return bp < code.length - 1;
 	}
 
 	public char peekChar(int n) {
@@ -45,11 +56,26 @@ public class CodeReader {
 	public String getLexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
 
 	public void newPosition() {
-		position = new Position(fileName, sp - lineStartPosition, lineNo);
+		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
+	}
+
+	public boolean isHexDigit() {
+		return '0' <= ch && ch <= '9'
+				|| 'a' <= ch && ch <= 'f'
+				|| 'A' <= ch && ch <= 'F';
+	}
+
+	public boolean isOctDigit() {
+		return '0' <= ch && ch <= '7';
+	}
+
+	public boolean isEndOfLine() {
+		return '\r' == ch || ch == '\n';
 	}
 
 	/**
-	 * Compare the current character with the given character. If matching, read the next character.
+	 * Compare the current character with the given character.
+	 * If matching, read the next character.
 	 * @param ch
 	 * @return true if matching.
 	 */
@@ -64,16 +90,10 @@ public class CodeReader {
 	/**
 	 * Compare the current character with one of the given characters.
 	 * If matching, read the next character.
-	 * @param ch1
 	 * @param chars
 	 * @return true if matching.
 	 */
-	public boolean accept(char ch1, char... chars) {
-		if (this.ch == ch1) {
-			nextChar();
-			return true;
-		}
-
+	public boolean accept(char... chars) {
 		for (char c : chars) {
 			if (this.ch == c) {
 				nextChar();
@@ -82,5 +102,50 @@ public class CodeReader {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Compare the current and next characters with the characters in the string.
+	 */
+	public boolean accept(String s) {
+		int savedPosition = bp;
+		for (int i = 0; i < s.length(); i++) {
+			if (ch == s.charAt(i)) {
+				nextChar();
+			} else {
+				bp = savedPosition;
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public boolean acceptLineTerminator() {
+		boolean hasCR = accept(CR);
+		boolean hasLF = accept(LF);
+		if (hasCR || hasLF) {
+			lineNo++;
+			lineStartPosition = bp;
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/** Skip over ASCII white space characters. */
+	public void skipWhitespace() {
+		while (accept(SPACE, TAB, FF)) {
+			// accept() already read the next character
+		}
+	}
+
+	/** Skip to end of line */
+	public void skipToEndOfLine() {
+		while (hasNext()) {
+			if (isEndOfLine()) {
+				break;
+			}
+			nextChar();
+		}
 	}
 }

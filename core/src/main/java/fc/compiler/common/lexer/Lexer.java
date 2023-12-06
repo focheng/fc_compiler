@@ -1,6 +1,6 @@
-package fc.compiler.lexer;
+package fc.compiler.common.lexer;
 
-import fc.compiler.token.Token;
+import fc.compiler.common.token.Token;
 
 /**
  * @author FC

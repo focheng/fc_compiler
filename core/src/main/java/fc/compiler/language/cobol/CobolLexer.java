@@ -1,31 +1,32 @@
-package fc.compiler.lexer;
+package fc.compiler.language.cobol;
 
-import fc.compiler.token.Token;
-import fc.compiler.token.TokenKind;
+import fc.compiler.common.lexer.CodeReader;
+import fc.compiler.common.lexer.Constants;
+import fc.compiler.common.lexer.Lexer;
+import fc.compiler.common.lexer.LexerBase;
+import fc.compiler.common.token.Token;
+import fc.compiler.common.token.TokenKind;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
-import static fc.compiler.lexer.Constants.*;
-
+import static fc.compiler.common.lexer.Constants.*;
+import static fc.compiler.common.lexer.Constants.CR;
 
 /**
- * Base class for Lexer (Lexical Analyzer).
  * @author FC
  */
-@Slf4j @Accessors(chain = true)
-public class LexerBase implements Lexer {
-//	protected TokenFactory tokenFactory;
-//	@Getter @Setter	protected CodeReader reader;
-	@Getter @Setter	protected IsIdentifierStart isIdentifierStart;
+@Slf4j
+public class CobolLexer extends LexerBase {
+	//	protected TokenFactory tokenFactory;
+	@Getter	@Setter	protected IsIdentifierStart isIdentifierStart;
 	@Getter @Setter	protected IsIdentifierPart isIdentifierPart;
 	@Getter @Setter	protected Lexer whitespaceLexer;
 
-	public LexerBase() {
+	public CobolLexer() {
 		isIdentifierStart = Character::isJavaIdentifierStart;
 		isIdentifierPart  = Character::isJavaIdentifierPart;
-		whitespaceLexer = LexerBase::scanWhiteSpaces;
+		whitespaceLexer = this::scanWhiteSpaces;
 	}
 
 	public Token scan(CodeReader reader) {
@@ -47,18 +48,14 @@ public class LexerBase implements Lexer {
 //					if (isStringLiteralStart(reader.ch))   return scanStringLiteral(ch);
 //					if (isCharLiteralQuotation(reader.ch)) return scanCharLiteral(ch);
 
-					lexError("Unsupported lexeme " + reader.ch + " @ " + reader.position);
+					lexError(reader, "Unsupported lexeme " + reader.ch + " @ " + reader.position);
 					return null;
 			}
 		}
 	}
 
-	protected void lexError(String s) {
-		log.warn(s);
-	}
-
 	// -- spaces --
-	protected static Token scanWhiteSpaces(CodeReader reader) {
+	protected Token scanWhiteSpaces(CodeReader reader) {
 		while (reader.accept(SPACE, TAB, FF, LF, CR)) {
 			// accept() already read the next character
 		}
@@ -68,7 +65,7 @@ public class LexerBase implements Lexer {
 	// -- comments --
 
 	// -- identifier --
-	protected Token scanIdentifier(CodeReader reader) {
+	public Token scanIdentifier(CodeReader reader) {
 		reader.nextChar();
 
 		while (isIdentifierPart.is(reader.ch)) {

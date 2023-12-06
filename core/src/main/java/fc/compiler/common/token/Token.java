@@ -1,12 +1,10 @@
-package fc.compiler.token;
+package fc.compiler.common.token;
 
-import fc.compiler.lexer.Position;
+import fc.compiler.common.lexer.Position;
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Token is the output of lexer and the input of parser.
@@ -21,10 +19,17 @@ import java.util.Map;
 @NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
 public class Token implements Cloneable {
 	@NonNull protected String kind;
-	@NonNull protected Position position;
 	protected String lexeme;
 	protected HashMap<String, Object> attributes;
+	@NonNull protected Position position;
 
+	public Token setRadix(int radix) {
+		if (attributes == null) {
+			attributes = new HashMap<>();
+		}
+		attributes.put("radix", radix);
+		return this;
+	}
 	@SuppressWarnings("unchecked")
 	public Object clone() {
 		try {
@@ -34,5 +39,18 @@ public class Token implements Cloneable {
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Token(").append(kind).append(", ");
+		if (lexeme != null) {
+			sb.append("'").append(lexeme).append("'");
+		}
+		sb.append(", ").append(position);
+		if (attributes != null)
+			sb.append(", attributes=").append(attributes);
+		sb.append(")");
+		return sb.toString();
 	}
 }
