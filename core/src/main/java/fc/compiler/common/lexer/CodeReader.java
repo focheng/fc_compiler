@@ -1,6 +1,7 @@
 package fc.compiler.common.lexer;
 
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 import static fc.compiler.common.lexer.Constants.*;
 
@@ -59,18 +60,27 @@ public class CodeReader {
 		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
 	}
 
+	public boolean isDecDigit() { return '0' <= ch && ch <= '9'; }
+	public boolean isOctDigit() { return '0' <= ch && ch <= '7'; }
 	public boolean isHexDigit() {
-		return '0' <= ch && ch <= '9'
+		return     '0' <= ch && ch <= '9'
 				|| 'a' <= ch && ch <= 'f'
 				|| 'A' <= ch && ch <= 'F';
 	}
 
-	public boolean isOctDigit() {
-		return '0' <= ch && ch <= '7';
-	}
+	public boolean isLetter() { return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'); }
+	public boolean isLetterOrDigit() { return isLetter() || isDecDigit(); }
 
 	public boolean isEndOfLine() {
 		return '\r' == ch || ch == '\n';
+	}
+
+	public boolean accept(Predicate<Character> predicate) {
+		if (predicate.test(this.ch)) {
+			nextChar();
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -130,6 +140,14 @@ public class CodeReader {
 		} else {
 			return false;
 		}
+	}
+
+	public boolean acceptDigits() {
+		boolean isDigit = false;
+		for (; isDecDigit(); nextChar()) {
+			isDigit = true;
+		}
+		return isDigit;
 	}
 
 	/** Skip over ASCII white space characters. */

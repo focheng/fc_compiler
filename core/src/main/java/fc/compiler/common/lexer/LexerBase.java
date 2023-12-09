@@ -29,13 +29,12 @@ public class LexerBase implements Lexer {
 			Token token = lexer.scan(reader);
 			return token;
 		} else {
-			lexError(reader, "Unsupported lexeme '" + reader.ch + "' @ " + reader.position);
-			return null;
+			return lexError(reader, "Unsupported lexeme '" + reader.ch + "' @ " + reader.position);
 		}
 	}
 
 	protected static Token lexError(CodeReader reader, String s) {
-		log.warn(s);
+		log.error(s);
 		return new Token(ERROR, reader.position).setLexeme(reader.getLexeme());
 	}
 
@@ -48,19 +47,31 @@ public class LexerBase implements Lexer {
 		reader.nextChar();
 		return new Token(EOF, reader.position);
 	}
-	public static Token scanComma(CodeReader reader) { return singleCharToken(reader, COMMA); }
-	public static Token scanSemicolon(CodeReader reader) {return singleCharToken(reader, SEMICOLON);}
-	public static Token scanColon(CodeReader reader) {return singleCharToken(reader, COLON);}
-	public static Token scanLeftParen(CodeReader reader) {return singleCharToken(reader, LEFT_PAREN);}
-	public static Token scanRightParen(CodeReader reader) {return singleCharToken(reader, RIGHT_PAREN);}
-	public static Token scanLeftBracket(CodeReader reader) {return singleCharToken(reader, LEFT_BRACKET);}
-	public static Token scanRightBracket(CodeReader reader) {return singleCharToken(reader, RIGHT_BRACKET);}
-	public static Token scanLeftBrace(CodeReader reader) {return singleCharToken(reader, LEFT_BRACE);}
-	public static Token scanRightBrace(CodeReader reader) {return singleCharToken(reader, RIGHT_BRACE);}
-	public static Token scanQuestion(CodeReader reader) {return singleCharToken(reader, QUESTION);}
-	public static Token scanAt(CodeReader reader) {return singleCharToken(reader, AT);}
+	public static Token scanWhiteSpaces(CodeReader reader) {
+		reader.skipWhitespace();
+		return new Token(WHITE_SPACES, reader.position).setLexeme(reader.getLexeme());    // by default, white spaces are ignored.
+	}
 
-	protected static Token singleCharToken(CodeReader reader, String kind) {
+	public static Token scanLineTerminator(CodeReader reader) {
+		if (reader.acceptLineTerminator()) {
+			return new Token(LINE_TERMINATOR, reader.position).setLexeme(reader.getLexeme());
+		}
+		return null;
+	}
+
+	public static Token scanComma(CodeReader reader) { return scanSingleCharToken(reader, COMMA); }
+	public static Token scanSemicolon(CodeReader reader) {return scanSingleCharToken(reader, SEMICOLON);}
+	public static Token scanColon(CodeReader reader) {return scanSingleCharToken(reader, COLON);}
+	public static Token scanLeftParen(CodeReader reader) {return scanSingleCharToken(reader, LEFT_PAREN);}
+	public static Token scanRightParen(CodeReader reader) {return scanSingleCharToken(reader, RIGHT_PAREN);}
+	public static Token scanLeftBracket(CodeReader reader) {return scanSingleCharToken(reader, LEFT_BRACKET);}
+	public static Token scanRightBracket(CodeReader reader) {return scanSingleCharToken(reader, RIGHT_BRACKET);}
+	public static Token scanLeftBrace(CodeReader reader) {return scanSingleCharToken(reader, LEFT_BRACE);}
+	public static Token scanRightBrace(CodeReader reader) {return scanSingleCharToken(reader, RIGHT_BRACE);}
+	public static Token scanQuestion(CodeReader reader) {return scanSingleCharToken(reader, QUESTION);}
+	public static Token scanAt(CodeReader reader) {return scanSingleCharToken(reader, AT);}
+
+	protected static Token scanSingleCharToken(CodeReader reader, String kind) {
 		reader.nextChar();
 		return new Token(kind, reader.position).setLexeme(reader.getLexeme());
 	}
@@ -70,14 +81,14 @@ public class LexerBase implements Lexer {
 	}
 
 	public static Token scanDoubleQuote(CodeReader reader) {
-		return scanStringLiteral(reader, '\"');
+		return scanStringLiteral(reader);
 	}
 
 	public static Token scanStringLiteral(CodeReader reader) {
 		return scanStringLiteral(reader, '\"');
 	}
 	public static Token scanStringLiteral(CodeReader reader, char quote) {
-		reader.nextChar();
+		reader.accept(quote);
 		while (reader.ch != quote
 				&& reader.ch != CR
 				&& reader.ch != LF
@@ -85,8 +96,7 @@ public class LexerBase implements Lexer {
 			scanEscapedChar(reader);
 			reader.nextChar();
 		}
-		if (reader.ch == quote) {
-			reader.nextChar();
+		if (reader.accept(quote)) {
 			return new Token(STRING_LITERAL, reader.position).setLexeme(reader.getLexeme());
 		} else {
 			lexError(reader, "invalid string literal: " + reader.getLexeme());
@@ -94,6 +104,7 @@ public class LexerBase implements Lexer {
 		}
 	}
 
+	public static Token scanCharLiteral(CodeReader reader) { return scanCharLiteral(reader, '\''); }
 	public static Token scanCharLiteral(CodeReader reader, char quote) {
 		reader.accept(quote);
 		if (reader.accept(quote)) {
@@ -116,4 +127,10 @@ public class LexerBase implements Lexer {
 		}
 		return 0;
 	}
+
+	public static Token scanLineComment(CodeReader reader) {
+		reader.skipToEndOfLine();
+		return new Token(LINE_COMMENT, reader.position).setLexeme(reader.getLexeme());
+	}
+
 }

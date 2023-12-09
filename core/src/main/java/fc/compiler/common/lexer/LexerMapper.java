@@ -14,13 +14,13 @@ public class LexerMapper {
 	@Getter @Setter
 	protected Lexer defaultLexer;
 	protected Lexer[] asciiLexers = new Lexer[128];         // for ASCII characters.
-	protected Map<Character, Lexer> map = new HashMap<>();  // for other characters especially unicode.
+	protected Map<Character, Lexer> extendedLexers = new HashMap<>();  // for other characters especially unicode.
 
 	public Lexer getLexer(Character ch) {
 		if (ch < 128) {
 			return asciiLexers[ch];
 		} else {
-			return map.get(ch);
+			return extendedLexers.get(ch);
 		}
 	}
 
@@ -28,7 +28,7 @@ public class LexerMapper {
 		if (ch < 128) {
 			asciiLexers[ch] = lexer;
 		} else {
-			map.put(ch, lexer);
+			extendedLexers.put(ch, lexer);
 		}
 	}
 }

@@ -91,6 +91,8 @@ public interface TokenKind {
 
 	// == keywords are formed from ASCII characters ==
 	// -- reserved keywords --
+	public static final String IF = "IF";
+	public static final String FOR = "FOR";
 
 	// -- contextual keywords --
 

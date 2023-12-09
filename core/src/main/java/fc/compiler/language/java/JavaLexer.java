@@ -19,13 +19,13 @@ public class JavaLexer extends LexerBase {
 
 	public LexerMapper initLexerMapper() {
 		LexerMapper mapper = new LexerMapper();
-		mapper.mapLexer(EOF,    JavaLexer::scanEOF);
+		mapper.mapLexer(EOF,    LexerBase::scanEOF);
 
-		mapper.mapLexer(SPACE,  JavaLexer::scanWhiteSpaces);
-		mapper.mapLexer(TAB,    JavaLexer::scanWhiteSpaces);
-		mapper.mapLexer(FF,     JavaLexer::scanWhiteSpaces);
-		mapper.mapLexer(LF,     JavaLexer::scanLineTerminator);
-		mapper.mapLexer(CR,     JavaLexer::scanLineTerminator);
+		mapper.mapLexer(SPACE,  LexerBase::scanWhiteSpaces);
+		mapper.mapLexer(TAB,    LexerBase::scanWhiteSpaces);
+		mapper.mapLexer(FF,     LexerBase::scanWhiteSpaces);
+		mapper.mapLexer(LF,     LexerBase::scanLineTerminator);
+		mapper.mapLexer(CR,     LexerBase::scanLineTerminator);
 
 		for (char c = 'a'; c < 'z'; c++) {
 			mapper.mapLexer(c,     JavaLexer::scanIdentifier);
@@ -80,19 +80,7 @@ public class JavaLexer extends LexerBase {
 		return null;
 	}
 
-	public static Token scanWhiteSpaces(CodeReader reader) {
-		reader.skipWhitespace();
-		return new Token(WHITE_SPACES, reader.position).setLexeme(reader.getLexeme());    // by default, white spaces are ignored.
-	}
-
-	public static Token scanLineTerminator(CodeReader reader) {
-		if (reader.acceptLineTerminator()) {
-			return new Token(LINE_TERMINATOR, reader.position).setLexeme(reader.getLexeme());
-		}
-		return null;
-	}
-
-	protected static Token scanIdentifier(CodeReader reader) {
+	public static Token scanIdentifier(CodeReader reader) {
 		if (!Character.isJavaIdentifierStart(reader.ch))
 			return null;
 
@@ -106,7 +94,7 @@ public class JavaLexer extends LexerBase {
 				.setLexeme(reader.getLexeme());
 	}
 
-	protected static Token scanNumber(CodeReader reader) {
+	public static Token scanNumber(CodeReader reader) {
 		if (reader.ch == '0') { // '0x1A', '0b01', '017'
 			reader.nextChar();
 			if (reader.ch == 'x' || reader.ch == 'X') {
@@ -123,7 +111,7 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	private static Token scanDecimalNumberLiteral(CodeReader reader) {
+	public static Token scanDecimalNumberLiteral(CodeReader reader) {
 		// scan integral part
 		for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
 
@@ -135,7 +123,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
 	}
 
-	private static Token scanHexNumberLiteral(CodeReader reader) {
+	public static Token scanHexNumberLiteral(CodeReader reader) {
 		// scan integral part
 		for (; reader.isHexDigit(); reader.nextChar()) {}
 
@@ -147,7 +135,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(16);
 	}
 
-	private static Token scanOctNumberLiteral(CodeReader reader) {
+	public static Token scanOctNumberLiteral(CodeReader reader) {
 		// scan integral part
 		for (; reader.isOctDigit(); reader.nextChar()) {}
 
@@ -159,7 +147,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(8);
 	}
 
-	private static Token scanBinaryNumberLiteral(CodeReader reader) {
+	public static Token scanBinaryNumberLiteral(CodeReader reader) {
 		// scan integral part
 		for (; reader.ch == '0' || reader.ch == '1'; reader.nextChar()) {}
 
@@ -171,13 +159,13 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(2);
 	}
 
-	private static Token scanFractionAndSuffix(CodeReader reader) {
+	public static Token scanFractionAndSuffix(CodeReader reader) {
 		for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
 		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
 	}
 
 
-	protected static Token scanDot(CodeReader reader) {
+	public static Token scanDot(CodeReader reader) {
 		if (reader.accept("...")) {
 			return new Token(ELLIPSIS, reader.position).setLexeme("...");
 		} else {
@@ -193,23 +181,23 @@ public class JavaLexer extends LexerBase {
 		return null;
 	}
 
-	private static Token scanPlus(CodeReader reader) {
+	public static Token scanPlus(CodeReader reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '+', PLUS_PLUS, PLUS_EQUAL, PLUS);
 	}
 
-	private static Token scanMinus(CodeReader reader) {
+	public static Token scanMinus(CodeReader reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '-', MINUS_MINUS, MINUS_EQUAL, MINUS);
 	}
 
-	private static Token scanAmpersand(CodeReader reader) {
+	public static Token scanAmpersand(CodeReader reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '&', AMPERSAND_AMPERSAND, AMPERSAND_EQUAL, AMPERSAND);
 	}
 
-	private static Token scanBar(CodeReader reader) {
+	public static Token scanBar(CodeReader reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '|', BAR_BAR, BAR_EQUAL, BAR);
 	}
 
-	private static Token scanDoubleOrEqualCompoundOperator(CodeReader reader, char operator,
+	public static Token scanDoubleOrEqualCompoundOperator(CodeReader reader, char operator,
 	                                                       String doubleKind, String compoundKind, String simpleKind) {
 		reader.accept(operator);
 		if (reader.accept(operator)) {
@@ -221,27 +209,27 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	private static Token scanStar(CodeReader reader) {
+	public static Token scanStar(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '*', STAR_EQUAL, STAR);
 	}
 
-	private static Token scanEqual(CodeReader reader) {
+	public static Token scanEqual(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '=', EQUAL_EQUAL, EQUAL);
 	}
 
-	private static Token scanPercent(CodeReader reader) {
+	public static Token scanPercent(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '%', PERCENT_EQUAL, PERCENT);
 	}
 
-	private static Token scanTilde(CodeReader reader) {
+	public static Token scanTilde(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '~', TILDE_EQUAL, TILDE);
 	}
 
-	private static Token scanCaret(CodeReader reader) {
+	public static Token scanCaret(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '^', CARET_EQUAL, CARET);
 	}
 
-	private static Token scanExclamationMark(CodeReader reader) {
+	public static Token scanExclamationMark(CodeReader reader) {
 		return scanEqualCompoundOperator(reader, '!', EXCLAMATION_MARK_EQUAL, EXCLAMATION_MARK);
 	}
 
@@ -251,7 +239,7 @@ public class JavaLexer extends LexerBase {
 		return scanEqualCompoundOperator(reader, compoundKind, simpleKind);
 	}
 
-	private static Token scanEqualCompoundOperator(CodeReader reader, String compoundKind, String simpleKind) {
+	public static Token scanEqualCompoundOperator(CodeReader reader, String compoundKind, String simpleKind) {
 		if (reader.accept('=')) {
 			return new Token(compoundKind, reader.position).setLexeme(reader.getLexeme());
 		} else {
@@ -259,15 +247,15 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	private static Token scanGT(CodeReader reader) {
+	public static Token scanGT(CodeReader reader) {
 		return scanGTOrLT(reader, '>', GT_GT_EQUAL, GT_GT, GT_EQUAL, GT);
 	}
 
-	private static Token scanLT(CodeReader reader) {
+	public static Token scanLT(CodeReader reader) {
 		return scanGTOrLT(reader, '<', LT_LT_EQUAL, LT_LT, LT_EQUAL, LT);
 	}
 
-	private static Token scanGTOrLT(CodeReader reader, char operator,
+	public static Token scanGTOrLT(CodeReader reader, char operator,
 	                                String doubleCompoundKind, String doubleKind,
 	                                String compoundKind, String simpleKind) {
 		reader.accept(operator);
@@ -284,7 +272,7 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	private static Token scanSlash(CodeReader reader) {
+	public static Token scanSlash(CodeReader reader) {
 		reader.accept('/');
 		if (reader.accept('/')) {
 			return scanLineComment(reader);
@@ -299,16 +287,11 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	private static Token scanLineComment(CodeReader reader) {
-		reader.skipToEndOfLine();
-		return new Token(LINE_COMMENT, reader.position).setLexeme(reader.getLexeme());
-	}
-
-	private static Token scanBlockComment(CodeReader reader) {
+	public static Token scanBlockComment(CodeReader reader) {
 		throw new RuntimeException("not implemented");
 	}
 
-	private static Token scanJavaDoc(CodeReader reader) {
+	public static Token scanJavaDoc(CodeReader reader) {
 		throw new RuntimeException("not implemented");
 	}
 
