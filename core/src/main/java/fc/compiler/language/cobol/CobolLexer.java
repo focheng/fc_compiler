@@ -3,14 +3,15 @@ package fc.compiler.language.cobol;
 import fc.compiler.common.lexer.*;
 import fc.compiler.common.token.Token;
 import fc.compiler.common.token.TokenKind;
-import fc.compiler.language.java.JavaLexer;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.Field;
 
 import static fc.compiler.common.lexer.Constants.*;
 import static fc.compiler.common.lexer.Constants.CR;
 import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 /**
  * Four types of COBOL character sets:
@@ -23,11 +24,12 @@ import static fc.compiler.common.token.TokenKind.*;
  */
 @Slf4j
 public class CobolLexer extends LexerBase {
-	CobolCompilerOptions option;
-	boolean previousTokenLineTerminator = true;
+	protected CobolCompilerOptions options;
+	@Getter protected boolean previousTokenLineTerminator = true;
 
 	public CobolLexer() {
 		this.mapper = initLexerMapper();
+		initReservedKeywords();
 	}
 
 	public Token scan(CodeReader reader) {
@@ -36,7 +38,7 @@ public class CobolLexer extends LexerBase {
 		if (reader.isEndOfLine()) {
 			previousTokenLineTerminator = true;
 			return scanLineTerminator(reader);
-		} else {
+		} else if (previousTokenLineTerminator) {
 			previousTokenLineTerminator = false;
 			switch (reader.ch) {
 				case '*':
@@ -44,7 +46,7 @@ public class CobolLexer extends LexerBase {
 					return scanLineComment(reader);
 				//case '-':
 				case 'D':
-					if (!option.debugMode) {
+					if (!options.debugMode) {
 						reader.skipToEndOfLine();
 						return new Token("IGNORED DEBUG CODE", reader.position).setLexeme(reader.getLexeme());
 					} else { // ignore this character.
@@ -52,7 +54,7 @@ public class CobolLexer extends LexerBase {
 						break;
 					}
 				default:
-					if (!Character.isWhitespace(reader.ch)) {
+					if (reader.ch != SPACE && !Character.isWhitespace(reader.ch)) {
 						Token token = lexError(reader, "Unsupported line indicator");
 						reader.nextChar();
 						return token;
@@ -102,6 +104,17 @@ public class CobolLexer extends LexerBase {
 		return mapper;
 	}
 
+	public void initReservedKeywords() {
+		try {
+			for (Field field : CobolTokenKind.class.getFields()) {
+				String keyword = (String)field.get(null);
+				reservedKeywords.put(keyword, keyword);
+			}
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	// -- line terminator --
 
 	/** -- comments --
@@ -126,15 +139,15 @@ public class CobolLexer extends LexerBase {
 	 */
 
 	public static Token onComma(CodeReader reader) {
-		return scanSeparator(reader, ',', "SEPARATOR_COMMA");
+		return scanSeparator(reader, ',', SEPARATOR_COMMA);
 	}
 
 	public static Token onSemicolon(CodeReader reader) {
-		return scanSeparator(reader, ',', "SEPARATOR_SEMICOLON");
+		return scanSeparator(reader, ',', SEPARATOR_SEMICOLON);
 	}
 
 	public static Token onPeriod(CodeReader reader) {
-		return scanSeparator(reader, '.', "SEPARATOR_PERIOD");
+		return scanSeparator(reader, '.', SEPARATOR_PERIOD);
 	}
 
 	public static Token scanSeparator(CodeReader reader, char leadingChar, String tokenKind) {
@@ -209,7 +222,10 @@ public class CobolLexer extends LexerBase {
 			return lexError(reader, "an identifier must not end with '-' or '_'");
 		}
 
-		return new Token(IDENTIFIER, reader.position).setLexeme(reader.getLexeme());
+		String lexeme = reader.getLexeme();
+		String uppercase = lexeme.toUpperCase();
+		return new Token(TokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
+				reader.position).setLexeme(lexeme);
 	}
 
 	public static Token onDigit(CodeReader reader) {

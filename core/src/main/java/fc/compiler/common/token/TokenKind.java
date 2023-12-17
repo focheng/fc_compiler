@@ -1,5 +1,8 @@
 package fc.compiler.common.token;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author FC
  */
@@ -15,13 +18,24 @@ public interface TokenKind {
 	// -- line terminator --
 	public static final String LINE_TERMINATOR = "LINE_TERMINATOR";
 
+	default boolean isWhiteSpaces(String tokenKind) {
+		return tokenKind == WHITE_SPACES || tokenKind == LINE_TERMINATOR;
+	}
+
 	// -- indent --
-	public static final String INDENT = "INDENT";
+	//public static final String INDENT = "INDENT";
 
 
 	// == comments ==
 	public static final String BLOCK_COMMENT = "BLOCK_COMMENT";
 	public static final String LINE_COMMENT = "LINE_COMMENT";
+	public static final String DOC_COMMENT = "DOC_COMMENT";
+
+	default boolean isComment(String tokenKind) {
+		return tokenKind == BLOCK_COMMENT
+				|| tokenKind == LINE_COMMENT
+				|| tokenKind == DOC_COMMENT;
+	}
 
 
 	// == literals ==
@@ -32,6 +46,7 @@ public interface TokenKind {
 	public static final String DOUBLE_LITERAL = "DOUBLE_LITERAL";
 	public static final String STRING_LITERAL = "STRING_LITERAL";
 	public static final String CHAR_LITERAL = "CHAR_LITERAL";
+
 
 	// == separators (punctuactors) are formed from ASCII characters ==
 	public static final String DOT = "DOT";
@@ -86,15 +101,23 @@ public interface TokenKind {
 	public static final String CARET = "CARET";
 	public static final String CARET_EQUAL = "CARET_EQUAL";
 
+
 	// == identifier ==
 	public static final String IDENTIFIER = "IDENTIFIER";
 
+
 	// == keywords are formed from ASCII characters ==
+	public static Map<String, String> reservedKeywords = new HashMap<>();
+	public static void register(String keyword, String tokenKind) {
+		reservedKeywords.put(keyword, tokenKind);
+	}
+
 	// -- reserved keywords --
 	public static final String IF = "IF";
 	public static final String FOR = "FOR";
 
 	// -- contextual keywords --
+
 
 	// == special ==
 	public static final String ELLIPSIS = "ELLIPSIS";   // "..." in java.

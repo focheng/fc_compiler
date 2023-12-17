@@ -15,7 +15,7 @@ import java.util.HashMap;
  * @author FC
  */
 
-@ToString @Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(chain = true)
 @NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
 public class Token implements Cloneable {
 	@NonNull protected String kind;

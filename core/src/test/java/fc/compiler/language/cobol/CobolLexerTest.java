@@ -1,20 +1,14 @@
 package fc.compiler.language.cobol;
 
-import fc.compiler.common.lexer.CodeReader;
 import fc.compiler.common.lexer.IdentifierLexer;
-import fc.compiler.common.lexer.LexerBase;
 import fc.compiler.common.token.Token;
-import fc.compiler.common.token.TokenKind;
-import fc.compiler.language.java.JavaLexer;
-import fc.compiler.lexer.LexerBaseTest;
+import fc.compiler.common.lexer.LexerBaseTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author FC

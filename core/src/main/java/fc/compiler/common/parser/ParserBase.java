@@ -6,8 +6,6 @@ import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.statement.ExpressionStatement;
 import fc.compiler.common.ast.statement.ForStatement;
 import fc.compiler.common.ast.statement.IfStatement;
-import fc.compiler.common.lexer.CodeReader;
-import fc.compiler.common.lexer.Lexer;
 import fc.compiler.common.token.Token;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,51 +21,55 @@ import static fc.compiler.common.token.TokenKind.*;
  */
 @Slf4j @Getter @Setter @Accessors(chain = true)
 public class ParserBase implements Parser {
-	protected Map<String, Parser> registry;
-	protected CodeReader reader;
+	protected TokenReader reader;
 
 	@Override
-	public AstNode parse(Lexer mainLexer, CodeReader reader) {
-		Token token = mainLexer.scan(reader);
+	public AstNode parse(TokenReader reader, ParserRegistry registry) {
+		Token token = reader.getToken();
 		Parser parser = registry.get(token.getKind());
 		if (parser != null) {
-			AstNode node = parser.parse(mainLexer, reader);
+			AstNode node = parser.parse(reader, registry);
 			return node;
 		}
-		return syntaxError(mainLexer, reader, "No registered parser for token kind " + token.getKind());
+		return syntaxError(reader, "No registered parser for token kind " + token.getKind());
 	}
 
-	protected static AstNode syntaxError(Lexer mainLexer, CodeReader reader, String message) {
+	protected static AstNode syntaxError(TokenReader reader, String message) {
 		log.error(message);
 		return null;
 	}
 
-	public static Statement parseStatement(Lexer mainLexer, CodeReader reader) {
+	protected static AstNode ignore(TokenReader reader, ParserRegistry registry) {
+		reader.nextToken();
 		return null;
 	}
 
-	public static Expression parseExpression(Lexer mainLexer, CodeReader reader) {
-		return null;
+	public static Statement parseStatement(TokenReader reader, ParserRegistry registry) {
+		throw new RuntimeException("Not implemented");
 	}
 
-	public static Statement parseIfStatement(Lexer mainLexer, CodeReader reader) {
-		accept(IF);
-		Expression expr = parseExpression(mainLexer, reader);
-		Statement thenStatement = parseStatement(mainLexer, reader);
-		Statement elseStatement = parseStatement(mainLexer, reader);
+	public static Expression parseExpression(TokenReader reader, ParserRegistry registry) {
+		throw new RuntimeException("Not implemented");
+	}
+
+	public static Statement parseIfStatement(TokenReader reader, ParserRegistry registry) {
+		reader.accept(IF);
+		Expression expr = parseExpression(reader, registry);
+		Statement thenStatement = parseStatement(reader, registry);
+		Statement elseStatement = parseStatement(reader, registry);
 		return new IfStatement(expr, thenStatement, elseStatement);
 	}
 
-	public static Statement parseForStatementCStyle(Lexer mainLexer, CodeReader reader) {
-		accept(FOR);
-		accept(LEFT_PAREN);
-		Statement initializer = parseVariableDeclaration(mainLexer, reader);
-		accept(SEMICOLON);
-		Expression condition = parseExpression(mainLexer, reader);
-		accept(SEMICOLON);
-		Statement update = new ExpressionStatement().setExpression(parseExpression(mainLexer, reader));
-		accept(RIGHT_PAREN);
-		Statement statement = parseStatement(mainLexer, reader);
+	public static Statement parseForStatementCStyle(TokenReader reader, ParserRegistry registry) {
+		reader.accept(FOR);
+		reader.accept(LEFT_PAREN);
+		Statement initializer = parseVariableDeclaration(reader, registry);
+		reader.accept(SEMICOLON);
+		Expression condition = parseExpression(reader, registry);
+		reader.accept(SEMICOLON);
+		Statement update = new ExpressionStatement().setExpression(parseExpression(reader, registry));
+		reader.accept(RIGHT_PAREN);
+		Statement statement = parseStatement(reader, registry);
 
 		ForStatement stmt = new ForStatement();
 		stmt.setInitializer(initializer);
@@ -77,11 +79,11 @@ public class ParserBase implements Parser {
 		return stmt;
 	}
 
-	private static Statement parseVariableDeclaration(Lexer mainLexer, CodeReader reader) {
-		return null;
+	private static Statement parseVariableDeclaration(TokenReader reader, ParserRegistry registry) {
+		throw new RuntimeException("Not implemented");
 	}
 
-	public static boolean accept(String tokenKind) {
+//	public static boolean accept(String tokenKind) {
 //		if (token.getKind() == tokenKind) {
 //			nextToken();
 //			return true;
@@ -89,6 +91,5 @@ public class ParserBase implements Parser {
 //			syntaxError("accept(): " + kind + " is expected. but token " + token + " is parsed");
 //			return false;
 //		}
-		return true;
-	}
+//	}
 }

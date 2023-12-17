@@ -1,4 +1,4 @@
-package fc.compiler.lexer;
+package fc.compiler.common.lexer;
 
 import fc.compiler.common.lexer.CodeReader;
 import fc.compiler.common.lexer.Lexer;
