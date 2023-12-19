@@ -1,4 +1,4 @@
-package fc.compiler.common.ast.statement;
+package fc.compiler.common.ast;
 
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.StatementBase;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true) @ToString
+@Getter @Setter @Accessors(fluent= true) @ToString
 public class CompositeStatement<T extends Statement> extends StatementBase {
 	List<T> statements = new ArrayList<>();
 }

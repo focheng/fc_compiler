@@ -9,7 +9,7 @@ import javax.swing.plaf.nimbus.State;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class StatementBase implements Statement {
 	Statement parent;
 

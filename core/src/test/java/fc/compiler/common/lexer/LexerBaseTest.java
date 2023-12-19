@@ -31,7 +31,7 @@ public class LexerBaseTest {
 		do {
 			t = mainLexer.scan(reader);
 			tokenList.add(t);
-		} while (t != null && t.getKind() != TokenKind.EOF);
+		} while (t != null && t.kind() != TokenKind.EOF);
 
 		return tokenList;
 	}

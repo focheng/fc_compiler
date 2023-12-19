@@ -43,8 +43,8 @@ class CobolLexerTest extends LexerBaseTest {
 		cases.put("v-.",    "Token(ERROR, 'v-', (1, 1))");
 
 		IdentifierLexer idLexer = new IdentifierLexer();
-		idLexer.setIsIdentifierStart(CobolLexer::isLetterOrDigit);
-		idLexer.setIsIdentifierPart(CobolLexer::isIdentifierPart);
+		idLexer.isIdentifierStart(CobolLexer::isLetterOrDigit);
+		idLexer.isIdentifierPart(CobolLexer::isIdentifierPart);
 		for (String code : cases.keySet()) {
 			Assertions.assertEquals(cases.get(code), codeToToken(code, CobolLexer::scanIdentifier).toString());
 		}

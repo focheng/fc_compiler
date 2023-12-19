@@ -12,7 +12,7 @@ import static fc.compiler.common.token.TokenKind.IDENTIFIER;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class IdentifierLexer extends LexerBase {
 	private Predicate<Character> isIdentifierStart;
 	private Predicate<Character> isIdentifierPart;
@@ -24,6 +24,6 @@ public class IdentifierLexer extends LexerBase {
 			return lexError(reader, "Invalid identifier starting character.");
 		}
 		while (reader.accept(isIdentifierPart)) ;
-		return new Token(IDENTIFIER, reader.position).setLexeme(reader.getLexeme());
+		return new Token(IDENTIFIER, reader.position).lexeme(reader.lexeme());
 	}
 }

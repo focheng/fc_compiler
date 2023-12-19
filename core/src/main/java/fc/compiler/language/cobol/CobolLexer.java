@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 
 import static fc.compiler.common.lexer.Constants.*;
 import static fc.compiler.common.lexer.Constants.CR;
+import static fc.compiler.common.lexer.Constants.SPACE;
 import static fc.compiler.common.token.TokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
@@ -48,7 +49,7 @@ public class CobolLexer extends LexerBase {
 				case 'D':
 					if (!options.debugMode) {
 						reader.skipToEndOfLine();
-						return new Token("IGNORED DEBUG CODE", reader.position).setLexeme(reader.getLexeme());
+						return new Token("IGNORED DEBUG CODE", reader.position).lexeme(reader.lexeme());
 					} else { // ignore this character.
 						reader.nextChar();
 						break;
@@ -74,9 +75,9 @@ public class CobolLexer extends LexerBase {
 		mapper.mapLexer(LF,     LexerBase::scanLineTerminator);
 		mapper.mapLexer(CR,     LexerBase::scanLineTerminator);
 
-		for (char c = 'a'; c < 'z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
-		for (char c = 'A'; c < 'Z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
-		for (char c = '0'; c < '9'; c++) mapper.mapLexer(c, CobolLexer::onDigit);
+		for (char c = 'a'; c <= 'z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
+		for (char c = 'A'; c <= 'Z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
+		for (char c = '0'; c <= '9'; c++) mapper.mapLexer(c, CobolLexer::onDigit);
 
 		// separators
 		mapper.mapLexer(',', CobolLexer::onComma);	    // Comma
@@ -155,7 +156,7 @@ public class CobolLexer extends LexerBase {
 		if (Character.isWhitespace(reader.ch)) {
 			reader.nextChar();
 			for (; Character.isWhitespace(reader.ch); reader.nextChar()) {}
-			return new Token(tokenKind, reader.position).setLexeme(reader.getLexeme());
+			return new Token(tokenKind, reader.position).lexeme(reader.lexeme());
 		} else {
 			return lexError(reader, "Separator " + leadingChar + " is not followed by space");
 		}
@@ -165,7 +166,7 @@ public class CobolLexer extends LexerBase {
 	public static Token scanDoubleEqual(CodeReader reader) {
 		reader.accept('=');
 		reader.accept('=');
-		return new Token("PSEUDO_TEXT", reader.position).setLexeme(reader.getLexeme());
+		return new Token("PSEUDO_TEXT", reader.position).lexeme(reader.lexeme());
 	}
 
 	/** -- literals --
@@ -222,22 +223,22 @@ public class CobolLexer extends LexerBase {
 			return lexError(reader, "an identifier must not end with '-' or '_'");
 		}
 
-		String lexeme = reader.getLexeme();
+		String lexeme = reader.lexeme();
 		String uppercase = lexeme.toUpperCase();
 		return new Token(TokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
-				reader.position).setLexeme(lexeme);
+				reader.position).lexeme(lexeme);
 	}
 
 	public static Token onDigit(CodeReader reader) {
 		reader.acceptDigits();
 		if (reader.accept('.')) {
 			reader.acceptDigits();
-			return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
+			return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 		} else if (isIdentifierPart(reader.ch)) {
 			while (reader.accept(CobolLexer::isIdentifierPart)) {}
-			return new Token(IDENTIFIER, reader.position).setLexeme(reader.getLexeme());
+			return new Token(IDENTIFIER, reader.position).lexeme(reader.lexeme());
 		} else {
-			return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
+			return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 		}
 	}
 

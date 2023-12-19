@@ -91,7 +91,7 @@ public class JavaLexer extends LexerBase {
 		}
 
 		return new Token(IDENTIFIER, reader.position)
-				.setLexeme(reader.getLexeme());
+				.lexeme(reader.lexeme());
 	}
 
 	public static Token scanNumber(CodeReader reader) {
@@ -120,7 +120,7 @@ public class JavaLexer extends LexerBase {
 			for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
 		}
 
-		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
+		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 	}
 
 	public static Token scanHexNumberLiteral(CodeReader reader) {
@@ -132,7 +132,7 @@ public class JavaLexer extends LexerBase {
 			for (; reader.isHexDigit(); reader.nextChar()) {}
 		}
 
-		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(16);
+		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(16);
 	}
 
 	public static Token scanOctNumberLiteral(CodeReader reader) {
@@ -144,7 +144,7 @@ public class JavaLexer extends LexerBase {
 			for (; reader.isOctDigit(); reader.nextChar()) {}
 		}
 
-		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(8);
+		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(8);
 	}
 
 	public static Token scanBinaryNumberLiteral(CodeReader reader) {
@@ -156,18 +156,18 @@ public class JavaLexer extends LexerBase {
 			for (; reader.ch == '0' || reader.ch == '1'; reader.nextChar()) {}
 		}
 
-		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme()).setRadix(2);
+		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(2);
 	}
 
 	public static Token scanFractionAndSuffix(CodeReader reader) {
 		for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
-		return new Token(NUMBER_LITERAL, reader.position).setLexeme(reader.getLexeme());
+		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 	}
 
 
 	public static Token scanDot(CodeReader reader) {
 		if (reader.accept("...")) {
-			return new Token(ELLIPSIS, reader.position).setLexeme("...");
+			return new Token(ELLIPSIS, reader.position).lexeme("...");
 		} else {
 			reader.nextChar();
 			if (reader.accept('.')) {   // no double dots.
@@ -175,7 +175,7 @@ public class JavaLexer extends LexerBase {
 			} else if ('0' <= reader.ch && reader.ch <= '9') {
 				return scanFractionAndSuffix(reader);
 			} else {
-				return new Token(DOT, reader.position).setLexeme(".");
+				return new Token(DOT, reader.position).lexeme(".");
 			}
 		}
 		return null;
@@ -201,11 +201,11 @@ public class JavaLexer extends LexerBase {
 	                                                       String doubleKind, String compoundKind, String simpleKind) {
 		reader.accept(operator);
 		if (reader.accept(operator)) {
-			return new Token(doubleKind,    reader.position).setLexeme(reader.getLexeme());
+			return new Token(doubleKind,    reader.position).lexeme(reader.lexeme());
 		} else if (reader.accept('=')) {
-			return new Token(compoundKind,  reader.position).setLexeme(reader.getLexeme());
+			return new Token(compoundKind,  reader.position).lexeme(reader.lexeme());
 		} else {
-			return new Token(simpleKind,    reader.position).setLexeme(reader.getLexeme());
+			return new Token(simpleKind,    reader.position).lexeme(reader.lexeme());
 		}
 	}
 
@@ -241,9 +241,9 @@ public class JavaLexer extends LexerBase {
 
 	public static Token scanEqualCompoundOperator(CodeReader reader, String compoundKind, String simpleKind) {
 		if (reader.accept('=')) {
-			return new Token(compoundKind, reader.position).setLexeme(reader.getLexeme());
+			return new Token(compoundKind, reader.position).lexeme(reader.lexeme());
 		} else {
-			return new Token(simpleKind, reader.position).setLexeme(reader.getLexeme());
+			return new Token(simpleKind, reader.position).lexeme(reader.lexeme());
 		}
 	}
 
@@ -261,14 +261,14 @@ public class JavaLexer extends LexerBase {
 		reader.accept(operator);
 		if (reader.accept(operator)) {
 			if (reader.accept('=')) {
-				return new Token(doubleCompoundKind, reader.position).setLexeme(reader.getLexeme());
+				return new Token(doubleCompoundKind, reader.position).lexeme(reader.lexeme());
 			} else {
-				return new Token(doubleKind, reader.position).setLexeme(reader.getLexeme());
+				return new Token(doubleKind, reader.position).lexeme(reader.lexeme());
 			}
 		} else if (reader.accept('=')) {
-			return new Token(compoundKind,  reader.position).setLexeme(reader.getLexeme());
+			return new Token(compoundKind,  reader.position).lexeme(reader.lexeme());
 		} else {
-			return new Token(simpleKind,    reader.position).setLexeme(reader.getLexeme());
+			return new Token(simpleKind,    reader.position).lexeme(reader.lexeme());
 		}
 	}
 

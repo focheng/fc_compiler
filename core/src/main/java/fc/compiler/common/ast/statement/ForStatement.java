@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class ForStatement extends StatementBase {
 	Statement initializer;
 	Expression condition;

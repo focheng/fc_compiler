@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class SwitchCaseStatement<T extends Statement> extends StatementBase {
 	Expression expression;
 	List<T> statements = new ArrayList<>();

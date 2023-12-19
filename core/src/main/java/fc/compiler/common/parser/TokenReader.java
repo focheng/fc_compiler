@@ -9,6 +9,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -17,7 +18,7 @@ import static fc.compiler.common.token.TokenKind.*;
 /**
  * @author FC
  */
-@Accessors(chain = true) @Slf4j
+@Accessors(fluent = true) @Slf4j
 public class TokenReader {
 	@Getter @Setter	protected Lexer lexer;
 	@Getter @Setter	protected CodeReader codeReader;
@@ -62,14 +63,17 @@ public class TokenReader {
 		Token t = null;
 		do {
 			t = lexer.scan(codeReader);
-		} while (ignoreSpecialTokens
-				&& (t.getKind() == LINE_COMMENT || t.getKind() == BLOCK_COMMENT || t.getKind() == DOC_COMMENT
-					|| t.getKind() == WHITE_SPACES || t.getKind() == LINE_TERMINATOR));
+		} while (ignoreSpecialTokens && isSpecialToken(t));
 		return t;
 	}
 
+	protected boolean isSpecialToken(Token t) {
+		return t.kind() == LINE_COMMENT || t.kind() == BLOCK_COMMENT || t.kind() == DOC_COMMENT
+				|| t.kind() == WHITE_SPACES || t.kind() == LINE_TERMINATOR;
+	}
+
 	public boolean accept(Predicate<String> predicate) {
-		if (predicate.test(this.token.getKind())) {
+		if (predicate.test(this.token.kind())) {
 			nextToken();
 			return true;
 		}
@@ -78,100 +82,83 @@ public class TokenReader {
 		return false;
 	}
 
-	public boolean accept(String tokenKind) {
-		if (token.getKind() == tokenKind) {
-			nextToken();
+	protected Token returnAndNextTokenIfEqual(boolean errorIfNotEqual, String... tokenKinds) {
+		Token currentToken = token;
+		for (String tokenKind : tokenKinds) {
+			if (token.kind() == tokenKind) {
+				nextToken();    // move to next token
+				return currentToken;
+			}
+		}
+
+		if (errorIfNotEqual) {
+			if (tokenKinds.length == 1)
+				syntaxError("Token kind " + tokenKinds[0] + " is expected, but token " + token + " is parsed.");
+			else
+				syntaxError("One of token kind " + Arrays.toString(tokenKinds) + " is expected, but token " + token + " is parsed.");
+		}
+		return null;
+	}
+
+	/** check if equal. if yes, move to next token. otherwise, report error. */
+	public boolean accept(String... tokenKinds) {
+		return returnAndNextTokenIfEqual(true, tokenKinds) != null;
+	}
+
+	/** return current token and move to next token if equal. otherwise, report error. */
+	public Token acceptAndReturn(String... tokenKinds) {
+		return returnAndNextTokenIfEqual(true, tokenKinds);
+	}
+
+	/** check if equal. if yes, move to next token. otherwise, ignore. */
+	public boolean optional(String... tokenKinds) {
+		return returnAndNextTokenIfEqual(false, tokenKinds) != null;
+	}
+
+	/** return current token and move to next token if equal. otherwise, report error. */
+	public Token optionalAndReturn(String... tokenKinds) {
+		return returnAndNextTokenIfEqual(false, tokenKinds);
+	}
+
+
+	/** accept and advance only if the kind of current token and next tokens are same as @param tokenKinds. */
+	public boolean optionalNextTokens(String... tokenKinds) {
+		if (isKind(tokenKinds)) {
+			nextTokens(tokenKinds.length); // move ahead if all matches
 			return true;
 		}
-
-		syntaxError("accept(): " + tokenKind + " is expected. but token " + token + " is parsed");
 		return false;
 	}
 
-	public boolean accept(String... tokenKinds) {
-		for (String tokenKind : tokenKinds) {
-			if (token.getKind() == tokenKind) {
-				nextToken();
-				return true;
-			}
-		}
-
-		syntaxError("accept(): " + tokenKinds + " is expected. but token " + token + " is parsed");
-		return false;
+	public boolean isKind(String tokenKind) {
+		return tokenKind.equals(token.kind());
 	}
 
-	public Token acceptAndReturn(String tokenKind) {
-		Token result = token;
-		if (token.getKind() == tokenKind) {
-			nextToken();
-			return result;
-		}
-
-		syntaxError("acceptAndReturn(): " + tokenKind + " is expected. but token " + token + " is parsed");
-		return null;
-	}
-
-	public Token acceptAndReturn(String... tokenKinds) {
-		Token result = token;
-		for (String tokenKind : tokenKinds) {
-			if (token.getKind() == tokenKind) {
-				nextToken();
-				return result;
+	/** check if the kind of current token and next tokens are same as @param tokenKinds. */
+	public boolean isKind(String... tokenKinds) {
+		peekToken(tokenKinds.length - 1); // to peek n-1 next tokens.
+		for (int i = 0; i < tokenKinds.length; i++) {
+			Token t = peekToken(i);
+			if (t.kind() != tokenKinds[i]) {
+				return false;
 			}
 		}
+		return true;
+	}
 
-		syntaxError("acceptAndReturn(): " + tokenKinds + " is expected. but token " + token + " is parsed");
-		return null;
+	// call nextToken() n times
+	public void nextTokens(int n) {
+		for (int i = 0; i < n; i++) {
+			this.token = nextToken();
+		}
 	}
 
 	public void skipWhitespacesAndComments() {
 		// skip white spaces and comments
-		for (Token token = getToken();
-		     token.getKind() == WHITE_SPACES || token.getKind() == LINE_COMMENT;
+		for (Token token = token();
+		     token.kind() == WHITE_SPACES || token.kind() == LINE_COMMENT;
 		     token = nextToken()) {
 		}
-	}
-
-	public boolean optional(String tokenKind) {
-		if (token.getKind() == tokenKind) {
-			nextToken();
-			return true;
-		}
-		return false;
-	}
-
-//	public boolean is(String tokenKind) {
-//
-//	}
-
-//	public boolean isAhead(String... tokenKinds) {
-//		int n = tokenKinds.length;
-//		peekToken(n);
-//		for (int i = 0; i < n; i++) {
-//			Token t = peekToken(i+1);
-//			if (t.getKind() != tokenKinds[i]) {
-//				return false;
-//			}
-//		}
-//		return true;
-//	}
-
-	/** Check token kind of current token and next tokens are same as @param tokenKinds. */
-	public boolean acceptMultiTokens(String... tokenKinds) {
-		int n = tokenKinds.length - 1;  // exclude the current token.
-		peekToken(n);
-		for (int i = 0; i < tokenKinds.length; i++) {
-			Token t = peekToken(i);
-			if (t.getKind() != tokenKinds[i]) {
-				return false;
-			}
-		}
-
-		// move ahead if all matches
-		for (int i = 0; i < tokenKinds.length; i++) {
-			this.token = nextToken();
-		}
-		return true;
 	}
 
 	protected static void syntaxError(String message) {

@@ -54,7 +54,7 @@ public class CodeReader {
 		return ch;
 	}
 
-	public String getLexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
+	public String lexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
 
 	public void newPosition() {
 		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);

@@ -16,7 +16,7 @@ import static fc.compiler.common.token.TokenKind.*;
  * Base class for Lexer (Lexical Analyzer).
  * @author FC
  */
-@Slf4j @Getter @Setter @Accessors(chain = true)
+@Slf4j @Getter @Setter @Accessors(fluent = true)
 public class LexerBase implements Lexer {
 	protected LexerMapper mapper;
 
@@ -35,12 +35,12 @@ public class LexerBase implements Lexer {
 
 	protected static Token lexError(CodeReader reader, String s) {
 		log.error(s);
-		return new Token(ERROR, reader.position).setLexeme(reader.getLexeme());
+		return new Token(ERROR, reader.position).lexeme(reader.lexeme());
 	}
 
 	protected static Token scanDummy(CodeReader reader) {
 		reader.nextChar();
-		return new Token(TokenKind.ERROR, reader.position).setLexeme(reader.getLexeme());
+		return new Token(TokenKind.ERROR, reader.position).lexeme(reader.lexeme());
 	}
 
 	public static Token scanEOF(CodeReader reader) {
@@ -49,12 +49,12 @@ public class LexerBase implements Lexer {
 	}
 	public static Token scanWhiteSpaces(CodeReader reader) {
 		reader.skipWhitespace();
-		return new Token(WHITE_SPACES, reader.position).setLexeme(reader.getLexeme());    // by default, white spaces are ignored.
+		return new Token(WHITE_SPACES, reader.position).lexeme(reader.lexeme());    // by default, white spaces are ignored.
 	}
 
 	public static Token scanLineTerminator(CodeReader reader) {
 		if (reader.acceptLineTerminator()) {
-			return new Token(LINE_TERMINATOR, reader.position).setLexeme(reader.getLexeme());
+			return new Token(LINE_TERMINATOR, reader.position).lexeme(reader.lexeme());
 		}
 		return null;
 	}
@@ -73,7 +73,7 @@ public class LexerBase implements Lexer {
 
 	protected static Token scanSingleCharToken(CodeReader reader, String kind) {
 		reader.nextChar();
-		return new Token(kind, reader.position).setLexeme(reader.getLexeme());
+		return new Token(kind, reader.position).lexeme(reader.lexeme());
 	}
 
 	public static Token scanSingleQuote(CodeReader reader) {
@@ -97,9 +97,9 @@ public class LexerBase implements Lexer {
 			reader.nextChar();
 		}
 		if (reader.accept(quote)) {
-			return new Token(STRING_LITERAL, reader.position).setLexeme(reader.getLexeme());
+			return new Token(STRING_LITERAL, reader.position).lexeme(reader.lexeme());
 		} else {
-			lexError(reader, "invalid string literal: " + reader.getLexeme());
+			lexError(reader, "invalid string literal: " + reader.lexeme());
 			return null;
 		}
 	}
@@ -112,7 +112,7 @@ public class LexerBase implements Lexer {
 		} else {
 			scanEscapedChar(reader);
 			if (reader.accept(quote)) {
-				return new Token(CHAR_LITERAL, reader.position).setLexeme(reader.getLexeme());
+				return new Token(CHAR_LITERAL, reader.position).lexeme(reader.lexeme());
 			} else {
 				return lexError(reader, "Unclosed character literal.");
 			}
@@ -130,7 +130,7 @@ public class LexerBase implements Lexer {
 
 	public static Token scanLineComment(CodeReader reader) {
 		reader.skipToEndOfLine();
-		return new Token(LINE_COMMENT, reader.position).setLexeme(reader.getLexeme());
+		return new Token(LINE_COMMENT, reader.position).lexeme(reader.lexeme());
 	}
 
 }

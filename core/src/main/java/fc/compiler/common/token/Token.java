@@ -15,7 +15,7 @@ import java.util.HashMap;
  * @author FC
  */
 
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent = true)
 @NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
 public class Token implements Cloneable {
 	@NonNull protected String kind;
@@ -23,13 +23,14 @@ public class Token implements Cloneable {
 	protected HashMap<String, Object> attributes;
 	@NonNull protected Position position;
 
-	public Token setRadix(int radix) {
+	public Token radix(int radix) {
 		if (attributes == null) {
 			attributes = new HashMap<>();
 		}
 		attributes.put("radix", radix);
 		return this;
 	}
+
 	@SuppressWarnings("unchecked")
 	public Object clone() {
 		try {

@@ -19,19 +19,19 @@ import static fc.compiler.common.token.TokenKind.*;
 /**
  * @author FC
  */
-@Slf4j @Getter @Setter @Accessors(chain = true)
+@Slf4j @Getter @Setter @Accessors(fluent = true)
 public class ParserBase implements Parser {
 	protected TokenReader reader;
 
 	@Override
 	public AstNode parse(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.getToken();
-		Parser parser = registry.get(token.getKind());
+		Token token = reader.token();
+		Parser parser = registry.get(token.kind());
 		if (parser != null) {
 			AstNode node = parser.parse(reader, registry);
 			return node;
 		}
-		return syntaxError(reader, "No registered parser for token kind " + token.getKind());
+		return syntaxError(reader, "No registered parser for token kind " + token.kind());
 	}
 
 	protected static AstNode syntaxError(TokenReader reader, String message) {
@@ -67,15 +67,15 @@ public class ParserBase implements Parser {
 		reader.accept(SEMICOLON);
 		Expression condition = parseExpression(reader, registry);
 		reader.accept(SEMICOLON);
-		Statement update = new ExpressionStatement().setExpression(parseExpression(reader, registry));
+		Statement update = new ExpressionStatement().expression(parseExpression(reader, registry));
 		reader.accept(RIGHT_PAREN);
 		Statement statement = parseStatement(reader, registry);
 
 		ForStatement stmt = new ForStatement();
-		stmt.setInitializer(initializer);
-		stmt.setCondition(condition);
-		stmt.setUpdate(update);
-		stmt.setStatement(statement);
+		stmt.initializer(initializer);
+		stmt.condition(condition);
+		stmt.update(update);
+		stmt.statement(statement);
 		return stmt;
 	}
 
@@ -84,7 +84,7 @@ public class ParserBase implements Parser {
 	}
 
 //	public static boolean accept(String tokenKind) {
-//		if (token.getKind() == tokenKind) {
+//		if (token.kind() == tokenKind) {
 //			nextToken();
 //			return true;
 //		} else {

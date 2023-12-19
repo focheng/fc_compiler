@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class GotoStatement extends StatementBase {
 	Identifier label;
 }

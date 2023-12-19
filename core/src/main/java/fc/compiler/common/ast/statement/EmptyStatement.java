@@ -8,6 +8,6 @@ import lombok.experimental.Accessors;
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(chain = true)
+@Getter @Setter @Accessors(fluent= true)
 public class EmptyStatement extends StatementBase {
 }
