@@ -161,6 +161,12 @@ public class TokenReader {
 		}
 	}
 
+	/** Skip all tokens until the given token kind. */
+	public void skipTo(String tokenKind) {
+		for (Token t = token(); tokenKind.equals(t.kind()); t = nextToken()) {
+		}
+	}
+
 	protected static void syntaxError(String message) {
 		log.error(message);
 	}

@@ -1,8 +1,10 @@
 package fc.compiler.language.cobol;
 
 import fc.compiler.common.ast.AstNode;
+import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.expression.Identifier;
+import fc.compiler.common.ast.statement.IfStatement;
 import fc.compiler.common.parser.Parser;
 import fc.compiler.common.parser.ParserBase;
 import fc.compiler.common.parser.ParserRegistry;
@@ -10,14 +12,53 @@ import fc.compiler.common.parser.TokenReader;
 import fc.compiler.common.token.Token;
 import fc.compiler.language.cobol.ast.CharacterString;
 import fc.compiler.language.cobol.ast.CobolProgram;
+import fc.compiler.language.cobol.ast.clause.*;
 import fc.compiler.language.cobol.ast.division.*;
-import fc.compiler.language.cobol.ast.statement.*;
+import fc.compiler.language.cobol.ast.statement.EvaluateStatement;
 import lombok.extern.slf4j.Slf4j;
 
 import static fc.compiler.common.token.TokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 /**
+ * Code Hiarchical Organizations
+ * IDENTIFICATION  ENVIRONMENT     DATA            PROCEDURE
+ * ------------------------------------------------------------
+ *                 Sections        Sections        Sections
+ * Paragraphs      Paragraphs                      Paragraphs
+ * Entries         Entries         Entries         Sentences
+ * Clauses         Clauses         Clauses         Statements
+ *                 Phrases         Phrases         Phrases
+ *
+ * Entry is a series of clauses that ends with a separator period.
+ * Clause is an ordered set of consecutive COBOL character-strings that specifies an attribute of an entry.
+ * Sentence is a sequence of one or more statements that ends with a separator period.
+ * Statement specifies an action to be taken by the program.
+ * Phrases: Each clause or statement can be subdivided into smaller units called phrases.
+ *
+ * 4 categories of statements:
+ * - imperative statement: either specifies an unconditional action to be taken by the program,
+ *                      or is a conditional statement terminated by its explicit scope terminator.
+ *      - Arithmetic: COMPUTE, ADD, ..., DIVIDE
+ *      - Data movement: MOVE, SET, STRING, UNSTRING,
+ *      - Input-Output: READ, WRITE,
+ *      - Ending: STOP RUN
+ *      - Procedure-branching: GO TO, PERFORM, CONTINUE
+ *      - Program or method linkage: CALL
+ * - conditional statement: specifies that the truth value of a condition is to be determined
+ *              and that the subsequent action of the object program is dependent on this truth value.
+ *      - Decision: IF, EVALUATE
+ *      - Arithmetic: (COMPUTE | ADD ~ DIVIDE) ... [NOT] ON SIZE ERROR
+ *      - Data movement: (STRING | UNSTRING) ... ON OVERFLOW
+ *      - Input-output: READ ... AT END
+ *      - Program or method linkage: CALL ... ON OVERFLOW
+ * - delimited scope statement:  uses an explicit scope terminator to turn a conditional statement
+ *              into an imperative statement.
+ *      - Explicit scope terminator: END-IF, END-EVALUATE, END-PERFORM
+ *      - Implicit scope terminator: is a separator period that terminates the scope of
+ *                  all previous statements not yet terminated at the end of any sentence.
+ * - compiler-directing statement: causes the compiler to take a specific action during compilation time.
+ *      e.g. copy statement
  * @author FC
  */
 @Slf4j
@@ -281,6 +322,42 @@ public class CobolParser extends ParserBase {
 		return token2.kind() == DIVISION
 				&& (token1.kind() == ENVIRONMENT || token1.kind() == DATA || token1.kind() == PROCEDURE);
 	}
+
+
+	// == sentences = statement-list "." ==
+
+
+	// == statement-list = { statement }+ ==
+	// statement = ( if-statement | evaluate-statement | ... | exit-statement )
+	/** if-statement = "IF" condition [ "THEN" ] ( { statement }+ | "NEXT" "SENTENCE" )
+	                   [ "ELSE" ( { statement }+ | "NEXT" "SENTENCE" ) ] [ "END-IF" ] */
+	public static IfStatement parseIfStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(IF)) return null;
+
+		IfStatement ifstmt = new IfStatement();
+		Expression expr = parseExpression(reader, registry);
+		reader.accept(THEN);
+		Statement thenStatement = parseStatement(reader, registry);
+		Statement elseStatement = parseStatement(reader, registry);
+		reader.optional(END_IF);
+		reader.accept(SEPARATOR_PERIOD);
+		return ifstmt.condition(expr).thenStatement(thenStatement).elseStatement(elseStatement);
+	}
+
+	/**
+	 * evaluate-statement = "EVALUATE" ( identifier | literal | arithmetic-expression | condition | "TRUE" | "FALSE" )
+	 *                        { "ALSO" ( identifier | literal | arithmetic-expression | condition | "TRUE" | "FALSE" ) }*
+	 *                      { { "WHEN" evaluate-phrase { "ALSO" evaluate-phrase }* }+ statement-list }+
+	 *                      [ "WHEN" "OTHER" statement-list ] [ "END-EVALUATE" ]
+	 * evaluate-phrase	=	( "ANY" | condition | "TRUE" | "FALSE" | [ "NOT" ] ( identifier | literal | arithmetic-expression ) [ ( "THROUGH" | "THRU" ) ( identifier | literal | arithmetic-expression ) ] )
+	 */
+	public static EvaluateStatement parseEvaluateStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(IF)) return null;
+		return new EvaluateStatement();
+	}
+
+	
+	// == expressions ==
 
 	public static Identifier parseIdentifier(TokenReader reader, ParserRegistry registry) {
 		Token token = reader.acceptAndReturn(IDENTIFIER);

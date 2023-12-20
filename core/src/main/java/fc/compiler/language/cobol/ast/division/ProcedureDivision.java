@@ -2,7 +2,7 @@ package fc.compiler.language.cobol.ast.division;
 
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.CompositeStatement;
-import fc.compiler.language.cobol.ast.statement.UsingClause;
+import fc.compiler.language.cobol.ast.clause.UsingClause;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

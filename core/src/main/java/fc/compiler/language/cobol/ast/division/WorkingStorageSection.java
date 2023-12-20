@@ -1,7 +1,7 @@
 package fc.compiler.language.cobol.ast.division;
 
 import fc.compiler.common.ast.StatementBase;
-import fc.compiler.language.cobol.ast.statement.DataDescriptionEntry;
+import fc.compiler.language.cobol.ast.clause.DataDescriptionEntry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

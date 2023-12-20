@@ -108,8 +108,10 @@ public class CobolLexer extends LexerBase {
 	public void initReservedKeywords() {
 		try {
 			for (Field field : CobolTokenKind.class.getFields()) {
-				String keyword = (String)field.get(null);
-				reservedKeywords.put(keyword, keyword);
+				if (field.getType().equals(String.class)) {
+					String keyword = (String) field.get(null);
+					reservedKeywords.put(keyword, keyword);
+				}
 			}
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(e);

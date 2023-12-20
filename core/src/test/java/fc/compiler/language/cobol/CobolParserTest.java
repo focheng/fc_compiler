@@ -2,6 +2,7 @@ package fc.compiler.language.cobol;
 
 import fc.compiler.common.ast.AstNode;
 import fc.compiler.common.ast.CompositeStatement;
+import fc.compiler.common.ast.statement.IfStatement;
 import fc.compiler.common.lexer.CodeReader;
 import fc.compiler.common.parser.Parser;
 import fc.compiler.common.parser.TokenReader;
@@ -40,6 +41,30 @@ public class CobolParserTest {
 		System.out.println(program.environmentDivision());
 		System.out.println(program.dataDivision());
 		System.out.println(program.procedureDivision());
+	}
+
+	@Test
+	void parseIfStatement() {
+		String codeSimpleIf = " IF WS-GENDER EQUAL 'M'\n" +
+					  "     DISPLAY \"Person is Male\"\n" +
+					  " END-IF.";
+		String codeIfElse = " IF WS-GENDER EQUAL 'M'\n" +
+				"    DISPLAY \"Person is Male\"\n" +
+				" ELSE \n" +
+				"    DISPLAY \"person is Female\"\n" +
+				" END-IF.";
+		String codeNestedIf = "IF WS-MARKS-PERCENT > 60\n" +
+				"  DISPLAY 'GOT FIRST CLASS'\n" +
+				"ELSE\n" +
+				"  IF WS-MARKS-PERCENT > 50\n" +
+				"         DISPLAY 'GOT SECOND CLASS'\n" +
+				"  ELSE \n" +
+				"         DISPLAY 'GOT THIRD CLASS'\n" +
+				"  END-IF\n" +
+				"END-IF.\n";
+		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReader(codeSimpleIf.toCharArray()));
+		IfStatement statement = CobolParser.parseIfStatement(tokenReader, CobolParser.initRegistry());
+		System.out.println(statement);
 	}
 
 	@Test

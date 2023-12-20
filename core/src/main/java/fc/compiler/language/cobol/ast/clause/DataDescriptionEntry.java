@@ -1,4 +1,4 @@
-package fc.compiler.language.cobol.ast.statement;
+package fc.compiler.language.cobol.ast.clause;
 
 import fc.compiler.common.ast.StatementBase;
 import fc.compiler.common.ast.expression.Identifier;

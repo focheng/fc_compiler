@@ -10,6 +10,6 @@ import lombok.experimental.Accessors;
  * @author FC
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
-public class DisplayClause extends StatementBase {
+public class EvaluateStatement extends StatementBase {
 	String value;
 }

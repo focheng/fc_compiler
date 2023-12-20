@@ -53,11 +53,13 @@ public class ParserBase implements Parser {
 	}
 
 	public static Statement parseIfStatement(TokenReader reader, ParserRegistry registry) {
-		reader.accept(IF);
+		if (!reader.optional(IF)) return null;
+
+		IfStatement statement = new IfStatement();
 		Expression expr = parseExpression(reader, registry);
 		Statement thenStatement = parseStatement(reader, registry);
 		Statement elseStatement = parseStatement(reader, registry);
-		return new IfStatement(expr, thenStatement, elseStatement);
+		return statement.condition(expr).thenStatement(thenStatement).elseStatement(elseStatement);
 	}
 
 	public static Statement parseForStatementCStyle(TokenReader reader, ParserRegistry registry) {
