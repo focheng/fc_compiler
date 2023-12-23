@@ -55,11 +55,11 @@ public class CobolLexer extends LexerBase {
 						break;
 					}
 				default:
-					if (reader.ch != SPACE && !Character.isWhitespace(reader.ch)) {
-						Token token = lexError(reader, "Unsupported line indicator");
-						reader.nextChar();
-						return token;
-					}
+//					if (reader.ch != SPACE && !Character.isWhitespace(reader.ch)) {
+//						Token token = lexError(reader, "Unsupported line indicator");
+//						reader.nextChar();
+//						return token;
+//					}
 			}
 		}
 		return super.scan(reader);
@@ -87,15 +87,15 @@ public class CobolLexer extends LexerBase {
 		mapper.mapLexer(')', LexerBase::scanRightParen);// Right parenthesis
 		mapper.mapLexer(':', LexerBase::scanColon);	    // Colon
 		mapper.mapLexer('&', reader -> scanSingleCharToken(reader, AMPERSAND));	// Ampersand
-		mapper.mapLexer('=', CobolLexer::scanDoubleEqual);	// Equal sign
+		mapper.mapLexer('=', CobolLexer::onEqual);	// Equal sign
 		mapper.mapLexer('*', LexerBase::scanLineComment);	// Asterisk
 
 //		mapper.mapLexer('+', );	// Plus sign
 //		mapper.mapLexer('-', );	// Minus sign or hyphen
 //		mapper.mapLexer('/', );	// Slash
 //		mapper.mapLexer('$', );	// Dollar sign
-//		mapper.mapLexer('>', );	// Greater-than sign
-//		mapper.mapLexer('<', );	// Less-than sign
+		mapper.mapLexer('>', CobolLexer::onGT);	// Greater-than sign
+		mapper.mapLexer('<', CobolLexer::onLT);	// Less-than sign
 //		mapper.mapLexer('_', );	// Underscore
 
 		mapper.mapLexer('\'', CobolLexer::scanSingleQuote);
@@ -155,7 +155,7 @@ public class CobolLexer extends LexerBase {
 
 	public static Token scanSeparator(CodeReader reader, char leadingChar, String tokenKind) {
 		reader.accept(leadingChar);
-		if (Character.isWhitespace(reader.ch)) {
+		if (Character.isWhitespace(reader.ch) || reader.ch == Constants.EOF) {
 			reader.nextChar();
 			for (; Character.isWhitespace(reader.ch); reader.nextChar()) {}
 			return new Token(tokenKind, reader.position).lexeme(reader.lexeme());
@@ -164,11 +164,34 @@ public class CobolLexer extends LexerBase {
 		}
 	}
 
-	/** The == pseudo-text delimiter */
-	public static Token scanDoubleEqual(CodeReader reader) {
+	private static Token onEqual(CodeReader reader) {
 		reader.accept('=');
-		reader.accept('=');
-		return new Token("PSEUDO_TEXT", reader.position).lexeme(reader.lexeme());
+		if (reader.accept('=')) {
+			/** The == pseudo-text delimiter */
+			return new Token("PSEUDO_TEXT", reader.position).lexeme(reader.lexeme());
+		} else {
+			return new Token(EQUAL, reader.position).lexeme(reader.lexeme());
+		}
+	}
+
+	private static Token onGT(CodeReader reader) {
+		reader.accept('>');
+		if (reader.accept('=')) {
+			return new Token(GT_EQUAL, reader.position).lexeme(reader.lexeme());
+		} else {
+			return new Token(GT, reader.position).lexeme(reader.lexeme());
+		}
+	}
+
+	private static Token onLT(CodeReader reader) {
+		reader.accept('<');
+		if (reader.accept('=')) {
+			return new Token(LT_EQUAL, reader.position).lexeme(reader.lexeme());
+		} else if (reader.accept('>')) {
+			return new Token(NOT_EQUAL, reader.position).lexeme(reader.lexeme());
+		} else {
+			return new Token(LT, reader.position).lexeme(reader.lexeme());
+		}
 	}
 
 	/** -- literals --

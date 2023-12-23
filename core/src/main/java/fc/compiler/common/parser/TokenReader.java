@@ -16,6 +16,7 @@ import java.util.function.Predicate;
 import static fc.compiler.common.token.TokenKind.*;
 
 /**
+ * A bridge between Lexer and Parser just like CodeReader
  * @author FC
  */
 @Accessors(fluent = true) @Slf4j
@@ -82,6 +83,16 @@ public class TokenReader {
 		return false;
 	}
 
+	public boolean accept(String tokenKind) {
+		if (tokenKind.equals(this.token.kind())) {
+			nextToken();
+			return true;
+		}
+
+		syntaxError("accept() failed for token " + token + ".");
+		return false;
+	}
+
 	protected Token returnAndNextTokenIfEqual(boolean errorIfNotEqual, String... tokenKinds) {
 		Token currentToken = token;
 		for (String tokenKind : tokenKinds) {
@@ -101,25 +112,33 @@ public class TokenReader {
 	}
 
 	/** check if equal. if yes, move to next token. otherwise, report error. */
-	public boolean accept(String... tokenKinds) {
+	public boolean acceptAnyOf(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(true, tokenKinds) != null;
 	}
 
 	/** return current token and move to next token if equal. otherwise, report error. */
-	public Token acceptAndReturn(String... tokenKinds) {
+	public Token acceptAnyOfAndReturn(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(true, tokenKinds);
 	}
 
+	public boolean optional(String tokenKind) {
+		if (tokenKind.equals(this.token.kind())) {
+			nextToken();
+			return true;
+		}
+
+		return false;
+	}
+
 	/** check if equal. if yes, move to next token. otherwise, ignore. */
-	public boolean optional(String... tokenKinds) {
+	public boolean optionalAnyOf(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(false, tokenKinds) != null;
 	}
 
 	/** return current token and move to next token if equal. otherwise, report error. */
-	public Token optionalAndReturn(String... tokenKinds) {
+	public Token optionalAnyOfAndReturn(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(false, tokenKinds);
 	}
-
 
 	/** accept and advance only if the kind of current token and next tokens are same as @param tokenKinds. */
 	public boolean optionalNextTokens(String... tokenKinds) {
@@ -144,6 +163,14 @@ public class TokenReader {
 			}
 		}
 		return true;
+	}
+
+	public boolean isKindAnyOf(String... tokenKinds) {
+		for (String tokenKind : tokenKinds) {
+			if (tokenKind.equals(token.kind()))
+				return true;
+		}
+		return false;
 	}
 
 	// call nextToken() n times

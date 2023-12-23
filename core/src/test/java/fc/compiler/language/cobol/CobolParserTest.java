@@ -68,6 +68,16 @@ public class CobolParserTest {
 	}
 
 	@Test
+	void parseEvaluateStatement() {
+		String code = " IF WS-GENDER EQUAL 'M'\n" +
+				"     DISPLAY \"Person is Male\"\n" +
+				" END-IF.";
+		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReader(code.toCharArray()));
+		IfStatement statement = CobolParser.parseIfStatement(tokenReader, CobolParser.initRegistry());
+		System.out.println(statement);
+	}
+
+	@Test
 	void parseDataDescriptionEntry() {
 
 	}

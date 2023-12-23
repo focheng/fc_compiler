@@ -60,6 +60,7 @@ public class CodeReader {
 		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
 	}
 
+	public boolean is(char c) { return this.ch == c; }
 	public boolean isDecDigit() { return '0' <= ch && ch <= '9'; }
 	public boolean isOctDigit() { return '0' <= ch && ch <= '7'; }
 	public boolean isHexDigit() {

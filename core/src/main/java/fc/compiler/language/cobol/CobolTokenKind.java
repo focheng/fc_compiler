@@ -36,8 +36,10 @@ public interface CobolTokenKind extends TokenKind {
 //	public static final String FILLER = "FILLER";
 
 	public static final String IS = "IS";
+	public static final String ARE = "ARE";
 	public static final String END = "END";
 	public static final String PROGRAM = "PROGRAM";
+	public static final String NOT_EQUAL = "NOT_EQUAL";
 
 	// figure constants
 	public static final String ZERO = "ZERO";
@@ -51,7 +53,6 @@ public interface CobolTokenKind extends TokenKind {
 	public static final String APPLY = "APPLY";
 	public static final String ACCESS = "ACCESS";
 	public static final String ALPHABETIC_UPPER = "ALPHABETIC-UPPER";
-	public static final String ARE = "ARE";
 	public static final String ADD = "ADD";
 	public static final String ALPHANUMERIC = "ALPHANUMERIC";
 	public static final String AREA = "AREA";
@@ -169,9 +170,8 @@ public interface CobolTokenKind extends TokenKind {
 	public static final String EOP = "EOP";
 	public static final String ENABLE = "ENABLE";
 	public static final String END_RECEIVE = "END-RECEIVE";
-	public static final String EQUAL = "EQUAL";
 	public static final String END_RETURN = "END-RETURN";
-	public static final String ERROR = "ERROR";
+//	public static final String ERROR = "ERROR";
 	public static final String END_ADD = "END-ADD";
 	public static final String END_REWRITE = "END-REWRITE";
 	public static final String ESI = "ESI";
@@ -294,7 +294,6 @@ public interface CobolTokenKind extends TokenKind {
 	public static final String PADDING = "PADDING";
 	public static final String PROCEDURES = "PROCEDURES";
 	public static final String PAGE = "PAGE";
-	public static final String PLUS = "PLUS";
 	public static final String PROCEED = "PROCEED";
 	public static final String PAGE_COUNTER = "PAGE-COUNTER";
 	public static final String POINTER = "POINTER";
