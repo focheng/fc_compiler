@@ -1,5 +1,6 @@
-package fc.compiler.language.cobol.ast.division;
+package fc.compiler.language.cobol.ast.clause;
 
+import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.StatementBase;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,7 +11,6 @@ import lombok.experimental.Accessors;
  * @author FC
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
-public class InputOutputSection extends StatementBase {
-	FileControlParagraph fileControlParagraph;
-	IoControlParagraph ioControlParagraph;
+public class AssignClause extends StatementBase {
+	Expression assignee;
 }

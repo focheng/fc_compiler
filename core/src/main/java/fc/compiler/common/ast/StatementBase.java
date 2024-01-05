@@ -11,7 +11,7 @@ import javax.swing.plaf.nimbus.State;
  */
 @Getter @Setter @Accessors(fluent= true)
 public class StatementBase implements Statement {
-	Statement parent;
+	Statement parent;       // assigned and used in ast visiting.
 
 	@Override
 	public <R, P> R accept(StatementVisitor visitor, P p) {

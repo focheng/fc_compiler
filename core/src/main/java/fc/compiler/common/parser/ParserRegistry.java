@@ -8,6 +8,8 @@ import java.util.Map;
  */
 public class ParserRegistry {
 	protected Parser defaultParser;
+//	protected Parser statementParser;
+//	protected Parser expressionParser;
 	protected Map<String, Parser> parsers = new HashMap<>();
 
 	public Parser get(String tokenKind) {

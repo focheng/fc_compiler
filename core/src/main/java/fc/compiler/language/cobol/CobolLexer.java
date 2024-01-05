@@ -34,8 +34,7 @@ public class CobolLexer extends LexerBase {
 	}
 
 	public Token scan(CodeReader reader) {
-		reader.sp = reader.bp;
-		reader.newPosition();
+		reader.onStartToken();
 		if (reader.isEndOfLine()) {
 			previousTokenLineTerminator = true;
 			return scanLineTerminator(reader);
@@ -98,8 +97,8 @@ public class CobolLexer extends LexerBase {
 		mapper.mapLexer('<', CobolLexer::onLT);	// Less-than sign
 //		mapper.mapLexer('_', );	// Underscore
 
-		mapper.mapLexer('\'', CobolLexer::scanSingleQuote);
-		mapper.mapLexer('\"', LexerBase::scanDoubleQuote);
+		mapper.mapLexer('\'', CobolLexer::onSingleQuote);
+		mapper.mapLexer('\"', LexerBase::scanStringLiteral);
 
 		mapper.setDefaultLexer(LexerBase::scanDummy);
 		return mapper;
@@ -211,7 +210,7 @@ public class CobolLexer extends LexerBase {
 	 * - Floating-point numbers. e.g. +9.999E-3
 	 *      [+/-] mantissa E [+/-] exponent
 	 */
-	public static Token scanSingleQuote(CodeReader reader) {
+	public static Token onSingleQuote(CodeReader reader) {
 		return scanStringLiteral(reader, '\'');
 	}
 
@@ -250,8 +249,36 @@ public class CobolLexer extends LexerBase {
 
 		String lexeme = reader.lexeme();
 		String uppercase = lexeme.toUpperCase();
-		return new Token(TokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
+		Token token = new Token(TokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
 				reader.position).lexeme(lexeme);
+		optionalIdDivisionParagraph(reader, token);
+		return token;
+	}
+
+	private static boolean optionalIdDivisionParagraph(CodeReader reader, Token token) {
+		if (token.kind() == AUTHOR
+				|| token.kind() == INSTALLATION
+				|| token.kind() == DATE_WRITTEN
+				|| token.kind() == DATE_COMPILED
+				|| token.kind() == SECURITY) {
+			reader.accept('.');
+			String commentEntry = optionalCommentEntry(reader);
+			token.attribute(token.kind(), commentEntry);
+			return true;
+		}
+		return false;
+	}
+
+	private static String optionalCommentEntry(CodeReader reader) {
+		while (true) {
+			reader.skipToEndOfLine();
+			reader.acceptLineTerminator();
+			int countOfWhitespaces = reader.skipWhitespaces();
+			if (countOfWhitespaces <= 7) {
+				break;
+			}
+		}
+		return reader.lexeme();
 	}
 
 	public static Token onDigit(CodeReader reader) {

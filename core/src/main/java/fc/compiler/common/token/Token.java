@@ -31,6 +31,18 @@ public class Token implements Cloneable {
 		return this;
 	}
 
+	public Object attribute(String key) {
+		return attributes == null ? null : attributes.get(key);
+	}
+
+	public Token attribute(String key, Object value) {
+		if (attributes == null) {
+			attributes = new HashMap<>();
+		}
+		attributes.put(key, value);
+		return this;
+	}
+
 	@SuppressWarnings("unchecked")
 	public Object clone() {
 		try {

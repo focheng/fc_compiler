@@ -8,17 +8,20 @@ import fc.compiler.common.token.Token;
  * @author FC
  */
 @FunctionalInterface
-public interface ParserHub /*extends Parser */{
-	public Parser get(String tokenKind);
+public interface ParserHub /*extends Parser*/ {
+//	public Parser get(String tokenKind);
 //	public Parser put(String tokenKind, Parser parser);
 
-//	default AstNode parse(TokenReader reader) {
+	AstNode parse(TokenReader reader, ParserRegistry registry);
+//	{
 //		Token token = reader.token();
-//		Parser parser = get(token.kind());
+//		Parser parser = registry.get(token.kind());
 //		if (parser != null) {
 //			AstNode node = parser.parse(reader);
 //			return node;
 //		}
 //		return null;
 //	}
+
+	default AstNode parse(TokenReader reader) { return parse(reader, null); }
 }

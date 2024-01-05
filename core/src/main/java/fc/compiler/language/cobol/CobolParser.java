@@ -1,30 +1,31 @@
 package fc.compiler.language.cobol;
 
-import fc.compiler.common.ast.AstNode;
 import fc.compiler.common.ast.Expression;
-import fc.compiler.common.ast.ExpressionBase;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.expression.*;
 import fc.compiler.common.ast.statement.*;
-import fc.compiler.common.parser.Parser;
 import fc.compiler.common.parser.ParserBase;
 import fc.compiler.common.parser.ParserRegistry;
 import fc.compiler.common.parser.TokenReader;
 import fc.compiler.common.token.Token;
 import fc.compiler.language.cobol.ast.CharacterString;
+import fc.compiler.language.cobol.ast.CobolCompilationUnit;
 import fc.compiler.language.cobol.ast.CobolProgram;
 import fc.compiler.language.cobol.ast.clause.*;
 import fc.compiler.language.cobol.ast.division.*;
+import fc.compiler.language.cobol.ast.expression.RoundedIdentifier;
 import fc.compiler.language.cobol.ast.statement.*;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static fc.compiler.common.token.TokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 /**
- * Code Hiarchical Organizations
+ * Code Hierarchical Organizations
  * IDENTIFICATION  ENVIRONMENT     DATA            PROCEDURE
  *   DIVISION       DIVISION       DIVISION        DIVISION
  * ------------------------------------------------------------
@@ -39,30 +40,40 @@ import static fc.compiler.language.cobol.CobolTokenKind.*;
  * Sentence is a sequence of one or more statements that ends with a separator period.
  * Statement specifies an action to be taken by the program.
  * Phrases: Each clause or statement can be subdivided into smaller units called phrases.
+ * Within the PROCEDURE DIVISION, a procedure consists of a section or a group of sections,
+ * and a paragraph or group of paragraphs.
  *
- * 4 categories of statements:
+ * statements can be divided into 4 categories:
  * - imperative statement: either specifies an unconditional action to be taken by the program,
  *                      or is a conditional statement terminated by its explicit scope terminator.
- *      - Arithmetic: COMPUTE, ADD, ..., DIVIDE
- *      - Data movement: MOVE, SET, STRING, UNSTRING,
+ *      - Arithmetic: COMPUTE, ADD, SUBTRACT, MULTIPLY, DIVIDE
+ *      - Data movement: MOVE, SET, STRING, UNSTRING, ...
  *      - Input-Output: READ, WRITE,
- *      - Ending: STOP RUN
- *      - Procedure-branching: GO TO, PERFORM, CONTINUE
- *      - Program or method linkage: CALL
+ *      - Ending: STOP RUN, EXIT PROGRAM, EXIT METHOD, GOBACK
+ *      - Procedure-branching: GO TO, PERFORM, CONTINUE, ALTER
+ *      - Program or method linkage: CALL, CANCEL, INVOKE
+ *      - Table-handling: SET
  * - conditional statement: specifies that the truth value of a condition is to be determined
  *              and that the subsequent action of the object program is dependent on this truth value.
  *      - Decision: IF, EVALUATE
- *      - Arithmetic: (COMPUTE | ADD ~ DIVIDE) ... [NOT] ON SIZE ERROR
- *      - Data movement: (STRING | UNSTRING) ... ON OVERFLOW
+ *      - Arithmetic: (COMPUTE | ADD | SUBTRACT | MULTIPLY | DIVIDE) ... [NOT] ON SIZE ERROR
+ *      - Data movement: (STRING | UNSTRING) ... [NOT] ON OVERFLOW
  *      - Input-output: READ ... AT END
  *      - Program or method linkage: CALL ... ON OVERFLOW
+ *      - Table-handling: SEARCH
  * - delimited scope statement:  uses an explicit scope terminator to turn a conditional statement
  *              into an imperative statement.
- *      - Explicit scope terminator: END-IF, END-EVALUATE, END-PERFORM
+ *      - Explicit scope terminator: END-IF, END-EVALUATE, END-PERFORM, ...
  *      - Implicit scope terminator: is a separator period that terminates the scope of
  *                  all previous statements not yet terminated at the end of any sentence.
  * - compiler-directing statement: causes the compiler to take a specific action during compilation time.
  *      e.g. copy statement
+ *
+ * Expression can be dividied into 2 categories:
+ * - Arithmetic expressions are used as operands of certain conditional and arithmetic statements.
+ * - Conditional expression causes the object program to select alternative paths of control,
+ * depending on the truth value of a test. specified in EVALUATE, IF, PERFORM, and SEARCH statements.
+ *
  * @author FC
  */
 @Slf4j
@@ -76,13 +87,26 @@ public class CobolParser extends ParserBase {
 		map.put(WHITE_SPACES, ParserBase::ignore);
 		map.put(LINE_COMMENT, ParserBase::ignore);
 
+		map.put(ASSIGN, CobolParser::parseAssignClause);
+
 		map.put(IF, CobolParser::parseIfStatement);
 		map.put(EVALUATE, CobolParser::parseEvaluateStatement);
 		map.put(CONTINUE, CobolParser::parseContinueStatement);
 		map.put(GO, CobolParser::parseGotoStatement);
+		map.put(GOBACK, CobolParser::parseGoBackStatement);
 		map.put(EXIT, CobolParser::parseExitStatement);
+
 		map.put(CALL, CobolParser::parseCallStatement);
+		map.put(PERFORM, CobolParser::parsePerformStatement);
+
+		map.put(SET, CobolParser::parseSetStatement);
+		map.put(MOVE, CobolParser::parseMoveStatement);
+
 		map.put(COMPUTE, CobolParser::parseComputeStatement);
+		map.put(ADD, CobolParser::parseAddStatement);
+		map.put(SUBTRACT, CobolParser::parseSubtractStatement);
+		map.put(MULTIPLY, CobolParser::parseMultiplyStatement);
+		map.put(DIVIDE, CobolParser::parseDivideStatement);
 
 		map.put(PIC, CobolParser::parsePictureClause);
 		map.put(PICTURE, CobolParser::parsePictureClause);
@@ -93,38 +117,113 @@ public class CobolParser extends ParserBase {
 		return map;
 	}
 
-	public static CobolProgram parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
-		return new CobolProgram()
+	/**
+	 * compilationUnit: idDivision
+	 *          environmentDivision?
+	 *          dataDivision?
+	 *          procedureDivision?
+	 *          nestedProgram*
+	 *          endProgramStatement?
+	 * nestProgram: identificationDivision environmentDivision? dataDivision? procedureDivision? nestedProgram* endProgramStatement?
+	 * endProgramStatement: 'END' 'PROGRAM' programName '.'
+	 *
+	 * A program contained within another program is called a "nested program".
+	 * A nested program can itself contain a nested program.
+	 * The outermost program is called the "compilation unit".
+	 */
+	public static CobolCompilationUnit parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
+		List<CobolProgram> list = parsePrograms(reader, registry);
+		return new CobolCompilationUnit().programs(list);
+	}
+
+	public static List<CobolProgram> parsePrograms(TokenReader reader, ParserRegistry registry) {
+		List<CobolProgram> programs = new ArrayList<>();
+		while (true) {
+			if (!isIdDivision(reader))
+				break;
+			programs.add(parseProgram(reader, registry));
+		}
+		return programs;
+	}
+
+	public static CobolProgram parseProgram(TokenReader reader, ParserRegistry registry) {
+		CobolProgram program = new CobolProgram()
 				.idDivision(parseIdDivision(reader, registry))
 				.environmentDivision(parseEnvironmentDivision(reader, registry))
 				.dataDivision(parseDataDivision(reader, registry))
 				.procedureDivision(parseProcedureDivision(reader, registry))
+				.nestedPrograms(parsePrograms(reader, registry))
 				;
+		Identifier programName = parseEndProgramStatement(reader, registry);
+		// TODO: check end program name with program id paragraph.
+		return program;
 	}
 
+	private static Identifier parseEndProgramStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.isKindNextTokens(END, PROGRAM, IDENTIFIER)) return null;
+
+		reader.accept(END);
+		reader.accept(PROGRAM);
+		return parseIdentifier(reader, registry);
+	}
+
+	/**
+	 * idDivision: ('IDENTIFICATION' | 'ID') 'DIVISION' '.'
+	 *              programIdParagraph
+	 *              idDivisionOptionalParagraph*
+	 */
 	public static IdDivision parseIdDivision(TokenReader reader, ParserRegistry registry) {
-		// ( "IDENTIFICATION" | "ID" ) "DIVISION" "."
 		reader.acceptAnyOf(IDENTIFICATION, ID);
-		reader.acceptAnyOf(DIVISION);
-		reader.acceptAnyOf(SEPARATOR_PERIOD);
+		reader.accept(DIVISION);
+		reader.accept(SEPARATOR_PERIOD);
 
-		// "PROGRAM-ID" [ "." ] program-name [ [ "IS" ] "INITIAL" [ "PROGRAM" ] ] [ "." ]
-		reader.acceptAnyOf(PROGRAM_ID);
-		reader.acceptAnyOf(SEPARATOR_PERIOD);
-		Identifier programName = parseIdentifier(reader, registry);
-		reader.acceptAnyOf(SEPARATOR_PERIOD);
+		IdDivision idDivision = new IdDivision()
+				.programName(parseProgramIdParagraph(reader, registry));
 
-		// ( [ "AUTHOR" [ "." ] { comment-entry }* ] )
+		parseIdDivisionOptionalParagraph(reader, idDivision);
 
-//		if (isNewDivision(reader))
-		return new IdDivision().programName(programName);
+		return idDivision;
 	}
+
+	public static boolean isIdDivision(TokenReader reader) {
+		return reader.isKindNextTokens(IDENTIFICATION, DIVISION, SEPARATOR_PERIOD)
+				|| reader.isKindNextTokens(ID, DIVISION, SEPARATOR_PERIOD);
+	}
+
+	/** programIdParagraph: "PROGRAM-ID" "."? program-name [ [ "IS" ] "INITIAL" [ "PROGRAM" ] ] "."? */
+	private static Identifier parseProgramIdParagraph(TokenReader reader, ParserRegistry registry) {
+		reader.accept(PROGRAM_ID);
+		reader.optional(SEPARATOR_PERIOD);
+		Identifier programName = parseIdentifier(reader, registry);
+		reader.optional(SEPARATOR_PERIOD);
+		return programName;
+	}
+
+	/**
+	 * idDivisionOptionalParagraph:
+	 *      ('AUTHOR'
+	 *      | 'INSTALLATION'
+	 *      | 'DATE_WRITTEN'
+	 *      | 'DATE_COMPILED'
+	 *      | 'SECURITY'
+	 *      ) '.' comment-entry*
+	 * A comment entry is an IDENTIFICATION DIVISION entry. It consists of any characters belonging to the computer	character set.
+	 * A comment entry is an obsolete element. Avoid using this element when creating new programs.
+	 */
+	private static void parseIdDivisionOptionalParagraph(TokenReader reader, IdDivision idDivision) {
+		for (Token token = null; ; ) {
+			token = reader.optionalAnyOfAndReturn(AUTHOR, INSTALLATION, DATE_WRITTEN, DATE_COMPILED, SECURITY);
+			if (token == null) {
+				break;
+			}
+			idDivision.attributes().put(token.kind(), (String)token.attribute(token.kind()));
+		}
+	}
+
 
 	/** [ "ENVIRONMENT" "DIVISION" "." environment-division-content ] */
 	public static EnvironmentDivision parseEnvironmentDivision(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(ENVIRONMENT, DIVISION, SEPARATOR_PERIOD)) {
-			return null;
-		}
+		if (!reader.optionalNextTokens(ENVIRONMENT, DIVISION, SEPARATOR_PERIOD)) return null;
 
 		return new EnvironmentDivision()
 				.configurationSection(parseConfigurationSection(reader, registry))
@@ -133,25 +232,96 @@ public class CobolParser extends ParserBase {
 
 	/** configuration-section	=	"CONFIGURATION" "SECTION" "." configuration-section-paragraphs */
 	public static ConfigurationSection parseConfigurationSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(CONFIGURATION, SECTION, SEPARATOR_PERIOD)) {
-			return null;
+		if (!reader.optionalNextTokens(CONFIGURATION, SECTION, SEPARATOR_PERIOD)) return null;
+
+		ConfigurationSection config = new ConfigurationSection();
+		// SOURCE_COMPUTER '.' computerName (WITH? DEBUGGING MODE)? '.'
+		if (reader.optionalNextTokens(SOURCE_COMPUTER, SEPARATOR_PERIOD)) {
+			config.sourceComputerName(parseIdentifier(reader, registry));
+			reader.optional(WITH);
+			reader.optionalNextTokens(DEBUGGING, MODE);
+			reader.optional(SEPARATOR_PERIOD);
 		}
-		return new ConfigurationSection();
+
+		// OBJECT_COMPUTER '.' computerName objectComputerClause* '.'
+		if (reader.optionalNextTokens(OBJECT_COMPUTER, SEPARATOR_PERIOD)) {
+			config.objectComputerName(parseIdentifier(reader, registry));
+			reader.optional(SEPARATOR_PERIOD);
+		}
+
+		return config;
 	}
 
 	/** input-output-section	=	"INPUT-OUTPUT" "SECTION" "." [ file-control-paragraph ] [ i-o-control-paragraph ] */
 	public static InputOutputSection parseInputOutputSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(INPUT_OUTPUT, SECTION, SEPARATOR_PERIOD)) {
-			return null;
-		}
-		return new InputOutputSection();
+		if (!reader.optionalNextTokens(INPUT_OUTPUT, SECTION, SEPARATOR_PERIOD)) return null;
+
+		FileControlParagraph fileControlParagraph = parseFileControlParagraph(reader, registry);
+		IoControlParagraph ioControlParagraph = parseIoControlParagraph(reader, registry);
+		return new InputOutputSection().fileControlParagraph(fileControlParagraph)
+				.ioControlParagraph(ioControlParagraph);
 	}
 
-	/** 	[ "DATA" "DIVISION" "." data-division-content ] */
-	public static DataDivision parseDataDivision(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(DATA, DIVISION, SEPARATOR_PERIOD)) {
-			return null;
+	/** fileControlParagraph: FILE_CONTROL '.' fileControlEntry*
+	 * fileControlEntry: SELECT OPTIONAL? fileName
+	 *     ( assignClause
+	 *     | reserveClause
+	 *     | organizationClause
+	 *     | paddingCharacterClause
+	 *     | recordDelimiterClause
+	 *     | accessModeClause
+	 *     | recordKeyClause
+	 *     | alternateRecordKeyClause
+	 *     | fileStatusClause
+	 *     | passwordClause
+	 *     | relativeKeyClause
+	 *     )
+	 */
+	private static FileControlParagraph parseFileControlParagraph(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optionalNextTokens(FILE_CONTROL, SEPARATOR_PERIOD)) return null;
+
+		List<FileControlEntry> list = parseFileControlEntries(reader, registry);
+
+		return new FileControlParagraph().fileControlEntries(list);
+	}
+
+	private static List<FileControlEntry> parseFileControlEntries(TokenReader reader, ParserRegistry registry) {
+		List<FileControlEntry> list = new ArrayList<>();
+		for (; reader.optional(SELECT); ) {
+			reader.optional(OPTIONAL);
+			Identifier fileName = parseIdentifier(reader, registry);
+			CompositeStatement<Statement> statementList = parseStatementList(reader, registry);
+			list.add(new FileControlEntry().fileName(fileName)
+					.statementList(statementList));
 		}
+		return list;
+	}
+
+	private static AssignClause parseAssignClause(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(ASSIGN)) return null;
+
+		reader.optional(TO);
+		Expression assignee = parseIdentifierOrLiteral(reader, registry);
+		return new AssignClause().assignee(assignee);
+	}
+
+	private static IoControlParagraph parseIoControlParagraph(TokenReader reader, ParserRegistry registry) {
+		return null;
+	}
+
+	/** dataDivision: "DATA" "DIVISION" "."
+	 *      fileSection?
+	 *      workingStorageSection?
+	 *      linkageSection?
+	 *      dataBaseSection?
+	 *      communicationSection?
+	 *      localStorageSection?
+	 *      screenSection?
+	 *      reportSection?
+	 *      programLibrarySection?
+	 */
+	public static DataDivision parseDataDivision(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optionalNextTokens(DATA, DIVISION, SEPARATOR_PERIOD)) return null;
 
 		return new DataDivision()
 				.fileSection(parseFileSection(reader, registry))
@@ -159,11 +329,13 @@ public class CobolParser extends ParserBase {
 				.linkageSection(parseLinkageSection(reader, registry));
 	}
 
-	/** [ "FILE" "SECTION" "." { file-and-sort-description-entry { record-description-entry }+ }* ] */
+	/** fileSection:
+	 *      - FILE SECTION '.' [fileDescriptionEntry record-description-entry?]
+	 *      - FILE SECTION '.' sortFileDescriptionEntry?
+	 */
 	public static FileSection parseFileSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(FILE, SECTION, SEPARATOR_PERIOD)) {
-			return null;
-		}
+		if (!reader.optionalNextTokens(FILE, SECTION, SEPARATOR_PERIOD)) return null;
+
 		return new FileSection();
 	}
 
@@ -189,6 +361,52 @@ public class CobolParser extends ParserBase {
 	}
 
 	/**
+	 * File Description (FD) Entry (or Sort File Description (SD) Entry for sort/merge files)
+	 * fileDescriptionEntry: FD fileName fileDescriptionEntryClause*
+	 *      - sequential file description entry
+	 *      - relative or indexed file description entry
+	 *      - line-sequential file description entry
+	 * sortFileDescriptionEntry: SD fileName fileDescriptionEntryClause*
+	 *      - sort/merge file description entry
+	 * fileDescriptionEntryClause:
+	 *       externalClause
+	 *     | globalClause
+	 *     | blockContainsClause
+	 *     | recordContainsClause
+	 *     | labelRecordsClause
+	 *     | valueOfClause
+	 *     | dataRecordsClause
+	 *     | linageClause
+	 *     | codeSetClause
+	 *     | reportClause
+	 *     | recordingModeClause
+	 *     ;
+	 */
+	public static FileDescriptionEntry parseFileDescriptionEntry(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(FD)) return null;
+
+		FileDescriptionEntry fdEntry = new FileDescriptionEntry()
+				.fileName(parseIdentifier(reader, registry));
+		fdEntry.clause(parseStatement(reader, registry));
+		return fdEntry;
+	}
+
+	public static FileDescriptionEntry parseSortFileDescriptionEntry(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(SD)) return null;
+
+		FileDescriptionEntry fdEntry = new FileDescriptionEntry().isSort(true)
+				.fileName(parseIdentifier(reader, registry));
+		fdEntry.clause(parseStatement(reader, registry));
+		return fdEntry;
+	}
+
+	public static Statement parseLabelRecordsClause(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(LABEL)) return null;
+
+		return null;
+	}
+
+	/**
 	 * data-item-description-entry or 77-level description-entry = data-description-entry
 	 * record-description-entry	     = data-description-entry
 	 * data-description-entry
@@ -206,18 +424,15 @@ public class CobolParser extends ParserBase {
 		DataDescriptionEntry variable = new DataDescriptionEntry().dataName(dataName);
 
 		while (reader.token().kind() != SEPARATOR_PERIOD) {
-			Parser parser = registry.get(reader.token().kind());
-			if (parser != null) {
-				AstNode node = parser.parse(reader, registry);
-				if (node instanceof PictureClause picString) {
-					variable.pictureClause(picString);
-				} else if (node instanceof ValueClause value) {
-					variable.valueClause(value);
-				} else {
-					syntaxError(reader, "");
-				}
+			Statement statement = parseStatement(reader, registry);
+			if (statement instanceof PictureClause picString) {
+				variable.pictureClause(picString);
+			} else if (statement instanceof ValueClause value) {
+				variable.valueClause(value);
+			} else {
+				syntaxError(reader, "");
 			}
-			reader.nextToken();
+			reader.nextToken(); // FIXME
 		}
 		reader.acceptAnyOf(SEPARATOR_PERIOD);
 
@@ -284,9 +499,10 @@ public class CobolParser extends ParserBase {
 	 */
 	public static ProcedureDivision parseProcedureDivision(TokenReader reader, ParserRegistry registry) {
 		// ignore tokens until "PROCEDURE" "DIVISION"
-		while (!reader.isKind(PROCEDURE, DIVISION)) {
-			reader.nextToken();
-		}
+//		while (!reader.isKindNextTokens(PROCEDURE, DIVISION)) {
+//			reader.nextToken();
+//		}
+		if (!reader.isKindNextTokens(PROCEDURE, DIVISION)) return null;
 
 		ProcedureDivision division = new ProcedureDivision();
 		if (reader.optionalNextTokens(PROCEDURE, DIVISION, SEPARATOR_PERIOD)) {
@@ -298,16 +514,8 @@ public class CobolParser extends ParserBase {
 		}
 
 		while (!reader.optionalAnyOf(EOF) && !reader.optionalNextTokens(END, PROGRAM)) {
-			Parser parser = registry.get(reader.token().kind());
-			if (parser != null) {
-				AstNode node = parser.parse(reader, registry);
-				if (node instanceof Statement stmt) {
-					division.statements().add(stmt);
-				} else {
-					syntaxError(reader, "");
-				}
-			}
-			reader.nextToken();
+			Statement statement = parseStatement(reader, registry);
+			division.statements().add(statement);
 		}
 		return division;
 	}
@@ -334,11 +542,11 @@ public class CobolParser extends ParserBase {
 	}
 
 
-	// == sentences = statement-list "." ==
+	// == sentences: statement-list "." ==
 
 
-	// == statement-list = { statement }+ ==
-	// statement = ( if-statement | evaluate-statement | ... | exit-statement )
+	// == statement-list: statement+ ==
+	// statement = (if-statement | evaluate-statement | ... | exit-statement)
 	/**
 	 * if-statement = "IF" condition "THEN"? ( statement+ | "NEXT" "SENTENCE" )
 	 *                 [ "ELSE"              ( statement+ | "NEXT" "SENTENCE" ) ]
@@ -368,14 +576,84 @@ public class CobolParser extends ParserBase {
 	 * evaluate-statement:
 	 *  "EVALUATE" evaluate-select	 { "ALSO" evaluate-select }*
 	 *    { { "WHEN" evaluate-phrase { "ALSO" evaluate-phrase }* }+ statement-list }+
-	 *    [ "WHEN" "OTHER" statement-list ] [ "END-EVALUATE" ]
-	 * evaluate-select: ( identifier | literal | arithmetic-expression | conditional-expression | boolean-literal )
-	 * evaluate-phrase:	( "ANY" | conditional-expression | boolean-literal | [ "NOT" ] evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ] )
-	 * evaluate-value: ( identifier | literal | arithmetic-expression )
+	 *    [ "WHEN" "OTHER"                                          statement-list ]
+	 *    "END-EVALUATE"?
+	 * evaluate-select: identifier | literal | arithmetic-expression | conditional-expression | boolean-literal
+	 * evaluate-phrase:	"ANY" | conditional-expression | boolean-literal
+	 *      | [ "NOT" ] evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ]
+	 * evaluate-value: identifier | literal | arithmetic-expression
 	 */
 	public static EvaluateStatement parseEvaluateStatement(TokenReader reader, ParserRegistry registry) {
 		if (!reader.optional(EVALUATE)) return null;
-		return new EvaluateStatement();
+
+		EvaluateStatement evaluateStatement = new EvaluateStatement();
+		evaluateStatement.expression(parseEvaluateSelect(reader, registry));
+		evaluateStatement.alsoSelects(parseEvaluateAlsoSelects(reader, registry));
+
+		while (reader.optional(WHEN)) {
+			evaluateStatement.caseStatements().add(parseEvaluateWhenStatement(reader, registry));
+		}
+
+		reader.optional(END_EVALUATE);
+		return evaluateStatement;
+	}
+
+	private static EvaluateWhenStatement parseEvaluateWhenStatement(TokenReader reader, ParserRegistry registry) {
+		EvaluateWhenStatement caseStatement = new EvaluateWhenStatement();
+		if (!reader.optional(OTHER)) {
+			caseStatement.value(parseEvaluatePhrase(reader, registry));
+			caseStatement.alsoSelects(parseEvaluateAlsoSelects(reader, registry));
+		}
+		caseStatement.statements(parseStatementList(reader, registry));
+		return caseStatement;
+	}
+
+	private static Expression parseEvaluateSelect(TokenReader reader, ParserRegistry registry) {
+		return parseExpression(reader, registry);
+	}
+
+	private static List<Expression> parseEvaluateAlsoSelects(TokenReader reader, ParserRegistry registry) {
+		return parseExpressionListZeroOrMore(reader, registry, ALSO);
+	}
+
+	/** evaluate-phrase:	( "ANY" | conditional-expression | boolean-literal
+	 *      | [ "NOT" ] evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ] ) */
+	private static EvaluatePhrase parseEvaluatePhrase(TokenReader reader, ParserRegistry registry) {
+		EvaluatePhrase valuePhrase = new EvaluatePhrase();
+		if (reader.optional(ANY)) {
+			valuePhrase.isAny(true);
+		} else if (reader.optional(TRUE)) {
+			valuePhrase.isTrue(true);
+		} else if (reader.optional(FALSE)) {
+			valuePhrase.isFalse(true);
+		} else if (reader.optional(NOT)) {
+			valuePhrase.isNot(true);
+			valuePhrase.value(parseEvaluateValue(reader, registry));
+			if (reader.optionalAnyOf(THROUGH, THRU)) {
+				valuePhrase.through(parseEvaluateValue(reader, registry));
+			}
+		} else {    // conditional-expression | evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ]
+			Expression condition = parseConditionalExpression(reader, registry);
+			if (condition != null) {
+				valuePhrase.condition(condition);
+			} else {
+				valuePhrase.value(parseEvaluateValue(reader, registry));
+				if (reader.optionalAnyOf(THROUGH, THRU)) {
+					valuePhrase.through(parseEvaluateValue(reader, registry));
+				}
+			}
+		}
+		return valuePhrase;
+	}
+
+	private static Expression parseEvaluateValue(TokenReader reader, ParserRegistry registry) {
+		if (reader.isKind(IDENTIFIER)) {
+			return parseIdentifier(reader, registry);
+		} else if (reader.isKindAnyOf(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL)) {
+			return parseLiteral(reader, registry);
+		} else {
+			return parseArithmeticExpression(reader, registry);
+		}
 	}
 
 	public static Statement parseExitStatement(TokenReader reader, ParserRegistry registry) {
@@ -411,6 +689,11 @@ public class CobolParser extends ParserBase {
 		return new GotoStatement().label(label);
 	}
 
+	public static ExpressionStatement parseGoBackStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optionalAnyOf(GOBACK)) return null;
+		return new ExpressionStatement().expression(Identifier.get("goback"));
+	}
+
 	public static ExpressionStatement parseCallStatement(TokenReader reader, ParserRegistry registry) {
 		if (!reader.optionalAnyOf(CALL)) return null;
 
@@ -425,15 +708,198 @@ public class CobolParser extends ParserBase {
 		return new ExpressionStatement().expression(call);
 	}
 
+	/**
+	 * The PERFORM statement transfers control explicitly to one or more procedures
+	 * and implicitly returns control to the next executable statement
+	 * after execution of the specified procedures is completed.
+	 * The PERFORM statement is an inline PERFORM statement, when procedure-name-1 is omitted.
+	 * - perform unconditionally N times.
+	 * - perform until condition.
+	 *
+	 * - test before: condition will be tested before execution.
+	 * - test after: execution is executed at least once before condition is tested.
+	 *
+	 * perform-statement: (out-of-line-perform-statement | inline-perform-statement)
+	 * out-of-line-perform-statement: "PERFORM" procedure-name [ ( "THROUGH" | "THRU" ) procedure-name ] (basic | times | until | varying)
+	 *      basic:
+	 *      times:   (identifier | integer) "TIMES"
+	 * 	    varying: perform-varying-phrase perform-after-phrase
+	 * 	    until:   perform-until-phrase
+	 * inline-perform-statement: "PERFORM" (basic | times | until | varying) statement-list "END-PERFORM"
+	 *      basic:
+	 *      times:   (identifier | integer) "TIMES"
+	 *      varying: perform-varying-phrase
+	 *      until:   perform-until-phrase
+	 * perform-until-phrase:   [ "WITH"? "TEST" ( "BEFORE" | "AFTER" ) ] "UNTIL" condition
+	 * perform-varying-phrase: [ "WITH"? "TEST" ( "BEFORE" | "AFTER" ) ] "VARYING" ( identifier | index-name )
+	 *      "FROM" ( identifier | index-name | literal ) "BY" ( identifier | literal ) "UNTIL" condition
+	 * perform-after-phrase: { "AFTER" ( identifier | index-name )
+	 *      "FROM" ( identifier | index-name | literal ) "BY" ( identifier | literal ) "UNTIL" condition }*
+	 */
+	public static PerformStatement parsePerformStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optionalAnyOf(PERFORM)) return null;
+
+		PerformStatement stmt = new PerformStatement();
+		if (varyingOrUntilPhrase(reader, registry, stmt)) { // inline varying or until
+			stmt.statementList(parseStatementList(reader, registry));
+			reader.accept(END_PERFORM);
+		} else if (timesPhrase(reader, registry, stmt)) {   // inline times
+			stmt.statementList(parseStatementList(reader, registry));
+			reader.accept(END_PERFORM);
+		} else if (outOfLineThroughPhrase(reader, registry, stmt)) {
+		} else if (outOfLinePhrase(reader, registry, stmt)) {
+		} else {    // inline basic
+			stmt.statementList(parseStatementList(reader, registry));
+			reader.accept(END_PERFORM);
+		}
+
+		reader.optionalAnyOf(END_PERFORM);
+		return stmt;
+	}
+
+	private static boolean outOfLinePhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+		if (reader.isKind(IDENTIFIER)) {
+			stmt.procedureName(parseIdentifier(reader, registry));
+			if (varyingOrUntilPhrase(reader, registry, stmt)) { // varying or until
+			}  else if (timesPhrase(reader, registry, stmt)) {  // times
+			} else {    // basic
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean outOfLineThroughPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+		if (reader.isKindNextTokens(IDENTIFIER, THROUGH)
+				|| reader.isKindNextTokens(IDENTIFIER, THRU)) {
+			stmt.procedureName(parseIdentifier(reader, registry));
+			reader.optionalAnyOf(THROUGH, THRU);
+			stmt.throughProcedureName(parseIdentifier(reader, registry));
+			if (varyingOrUntilPhrase(reader, registry, stmt)) { // varying or until
+			}  else if (timesPhrase(reader, registry, stmt)) {  // times
+			} else {    // basic
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean timesPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+		if (reader.isKindNextTokens(IDENTIFIER, TIMES)) {
+			stmt.timesExpression(parseIdentifier(reader, registry));
+			reader.accept(TIMES);
+			return true;
+		} else if (reader.isKindNextTokens(NUMBER_LITERAL, TIMES)) {
+			stmt.timesExpression(parseLiteral(reader, registry));
+			reader.accept(TIMES);
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean varyingOrUntilPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+		boolean with = reader.optional(WITH);
+		boolean test = reader.optional(TEST);
+		if (with || test) {
+			Token t = reader.acceptAnyOfAndReturn(BEFORE, AFTER);
+			stmt.beforeTest(t.kind() == BEFORE);
+			if (reader.optional(UNTIL)) {
+				stmt.untilExpression(parseConditionalExpression(reader, registry));
+			} else if (reader.optional(VARYING)) {
+				stmt.varyingIdentifier(parseIdentifier(reader, registry));
+				reader.accept(FROM);
+				stmt.fromExpression(parseIdentifierOrLiteral(reader, registry));
+				reader.accept(BY);
+				stmt.byExpression(parseIdentifierOrLiteral(reader, registry));
+				reader.accept(UNTIL);
+				stmt.untilExpression(parseConditionalExpression(reader, registry));
+			}
+			return true;
+		}
+		return false;
+	}
+
 	public static List<Expression> parseArguments(TokenReader reader, ParserRegistry registry) {
 		throw new RuntimeException("Not Implemented");
 	}
 
+	/** move-statement: 'MOVE'                (identifier | literal) 'TO' identifier
+	 *                | 'MOVE' ('CORRESPONDING' | 'CORR') identifier 'TO' identifier */
+	public static ExpressionStatement parseMoveStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(MOVE)) return null;
+
+		boolean corresponding = reader.optionalAnyOf(CORRESPONDING, CORR);
+		Expression expr = corresponding
+				? parseIdentifier(reader, registry)
+				: parseIdentifierOrLiteral(reader, registry);
+		reader.accept(TO);
+		Identifier variable = parseIdentifier(reader, registry);
+		Assignment assignment = new Assignment().expression(expr).variable(variable);
+		return new ExpressionStatement().expression(assignment);
+	}
+
+	/**
+	 * set-statement:
+	 *       "SET" { ( index-name | identifier ) }+ 			    "TO" ( index-name | identifier | integer )
+	 *     | "SET" { { mnemonic-name }+ 				            "TO" ( "ON" | "OFF" ) }+
+	 *     | "SET" { condition-name-reference }+ 			        "TO" "TRUE"
+	 *     | "SET" { ( identifier | "ADDRESS" "OF" identifier ) }+	"TO" ( identifier | "ADDRESS" "OF" identifier | "NULL" | "NULLS" )
+	 *     | "SET" { index-name }+ ( "UP" "BY" | "DOWN" "BY" ) ( identifier | integer )
+	 */
+	public static SetStatement parseSetStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(SET)) return null;
+
+		SetStatement stmt = new SetStatement();
+		Assignment assignment = new Assignment();
+		if (reader.optional(ADDRESS)) {
+			reader.accept(OF);
+			stmt.addressOf(true);
+			assignment.variable(parseIdentifier(reader, registry));
+			reader.accept(TO);
+			if (reader.optional(ADDRESS)) {
+				reader.accept(OF);
+				assignment.expression(parseIdentifier(reader, registry));
+			} else if (reader.optionalAnyOf(NULL, NULLS)) {
+				assignment.expression(new Identifier().id("NULL"));
+			} else {
+				assignment.expression(parseIdentifier(reader, registry));
+			}
+		} else {
+			assignment.variable(parseIdentifier(reader, registry));
+			if (reader.optional(UP)) {
+				reader.accept(BY);
+				stmt.up(true);
+				assignment.expression(parseIdentifierOrLiteral(reader, registry));
+			} else if (reader.optional(DOWN)) {
+				reader.accept(BY);
+				stmt.down(true);
+				assignment.expression(parseIdentifierOrLiteral(reader, registry));
+			} else if (reader.accept(TO)) {
+				if (reader.optional(ON)) {
+					stmt.on(true);
+				} else if (reader.optional(OFF)) {
+					stmt.off(true);
+				} else if (reader.optional(TRUE)) {
+					stmt.isTrue(true);
+				} else {
+					assignment.expression(parseIdentifierOrLiteral(reader, registry));
+				}
+			}
+		}
+		stmt.expression(assignment);
+		return stmt;
+	}
+
+	/**
+	 * compute-statement: "COMPUTE" { identifier [ "ROUNDED" ] }+ ( "=" | "EQUAL" ) arithmetic-expression
+	 *      [ "NOT"? "ON"? "SIZE" "ERROR" statement-list ]
+	 *      [ "END-COMPUTE" ]
+	 */
 	public static ExpressionStatement parseComputeStatement(TokenReader reader, ParserRegistry registry) {
 		if (!reader.optionalAnyOf(COMPUTE)) return null;
 
-		Identifier variable = parseIdentifier(reader, registry);
-		boolean rounded = reader.optionalAnyOf(ROUNDED);
+		List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
+		CompositeExpression variable = new CompositeExpression().expressions(ids);
 		reader.acceptAnyOf(EQUAL);
 		Expression expr = parseArithmeticExpression(reader, registry);
 		reader.optionalAnyOf(END_COMPUTE);
@@ -441,50 +907,157 @@ public class CobolParser extends ParserBase {
 		return new ExpressionStatement().expression(assignment);
 	}
 
-	/** move-statement: 'MOVE' (identifier | literal) 'TO' identifier
-	 *                | 'MOVE' ('CORRESPONDING' | 'CORR') identifier 'TO' identifier */
-	public static ExpressionStatement parseMoveStatement(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optional(MOVE)) return null;
+	/** -- add to / subtract from / multiply by / divide by statements --
+	 * add-statement: 'ADD' (addToStatement | addToGivingStatement | addCorrespondingStatement) onSizeErrorPhrase? notOnSizeErrorPhrase? "END-ADD"?
+	 * addToStatement:            ( identifier | literal )+ "TO" { identifier "ROUNDED"? }+
+	 * addToGivingStatement:      ( identifier | literal )+ "TO"? ( identifier | literal ) GIVING { identifier "ROUNDED"? }+
+	 * addCorrespondingStatement: ('CORRESPONDING' | 'CORR') identifier "TO" identifier
+	 */
+	public static AddSubtractMultiplyDivideStatement parseAddStatement(TokenReader reader, ParserRegistry registry) {
+		return parseAddOrSubtractStatement(reader, registry, ADD, TO, END_ADD).operator("+");
+	}
+	public static AddSubtractMultiplyDivideStatement parseSubtractStatement(TokenReader reader, ParserRegistry registry) {
+		return parseAddOrSubtractStatement(reader, registry, SUBTRACT, FROM, END_SUBTRACT).operator("-");
+	}
+	public static AddSubtractMultiplyDivideStatement parseAddOrSubtractStatement(TokenReader reader, ParserRegistry registry,
+	                                                              String kindStart, String kindMiddle, String kindEnd) {
+		if (!reader.optional(kindStart)) return null;
 
-		boolean corresponding = reader.optionalAnyOf(CORRESPONDING, CORR);
-		Expression expr = parseIdentifierOrLiteral(reader, registry);
-		reader.accept(TO);
-		Identifier variable = parseIdentifier(reader, registry);
-		Assignment assignment = new Assignment().expression(expr).variable(variable);
-		return new ExpressionStatement().expression(assignment);
+		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
+		if (reader.optionalAnyOf(CORRESPONDING, CORR)) {    // addCorrespondingStatement
+			stmt.corresponding(true);
+			stmt.rightOperand(parseIdentifier(reader, registry));
+			reader.accept(kindMiddle);
+			stmt.leftOperand(parseIdentifier(reader, registry));
+		} else {
+			List<Expression> list = parseExpressionListOneOrMore(reader, registry, TO);
+			stmt.rightOperand(new CompositeExpression().expressions(list));
+			reader.optional(kindMiddle);
+
+			boolean isGiving = false;
+			if (reader.isKindAnyOf(STRING_LITERAL, NUMBER_LITERAL)) {   // addToGivingStatement
+				stmt.giving(true);
+				reader.accept(GIVING);
+				List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
+				stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+			} else {
+				givingOrRegular(reader, registry, stmt);
+			}
+		}
+		reader.optional(kindEnd);
+		return stmt;
 	}
 
-	// == expression = (arithmetic expression | conditional expression) ==
+	private static void givingOrRegular(TokenReader reader, ParserRegistry registry, AddSubtractMultiplyDivideStatement stmt) {
+		boolean isGiving;
+		Identifier id = parseIdentifier(reader, registry);
+		isGiving = reader.optional(GIVING);
+		if (isGiving) { // addToGivingStatement
+			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
+			stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+		} else {        // addToStatement
+			boolean rounded = reader.optional(ROUNDED);
+			RoundedIdentifier ri = new RoundedIdentifier().rounded(rounded);
+			ri.id(id.id());
+			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
+			ids.add(0, ri); // insert the 1st id at the beginning.
+			stmt.leftOperand(new CompositeExpression().expressions(ids));
+		}
+	}
 
-	/**-- arithmetic expression --
-	 * - An identifier described as a numeric elementary item (including numeric functions)
-	 * - A numeric literal
-	 * - The figurative constant ZERO
-	 * - Identifiers and literals, as defined in items 1, 2, and 3, separated by arithmetic operators
-	 * - Two arithmetic expressions, as defined in items 1, 2, 3, or 4, separated by an arithmetic operator
-	 * - An arithmetic expression, as defined in items 1, 2, 3, 4, or 5, enclosed in parentheses
+	/**
+	 * multiplyStatement: 'MULTIPLY' (identifier | literal) 'BY' (multiplyRegular | multiplyGiving) onSizeErrorPhrase? notOnSizeErrorPhrase? 'END-MULTIPLY'?
+	 * multiplyRegular: { identifier "ROUNDED"? }+
+	 * multiplyGiving:  ( identifier | literal ) "GIVING" { identifier "ROUNDED"? }+
+	 */
+	public static AddSubtractMultiplyDivideStatement parseMultiplyStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(MULTIPLY)) return null;
+
+		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
+		stmt.rightOperand(parseIdentifierOrLiteral(reader, registry));
+		reader.accept(BY);
+		givingOrRegular(reader, registry, stmt);
+		reader.optional(END_MULTIPLY);
+		return stmt.operator("*");
+	}
+
+	/**
+	 * divideStatement: 'DIVIDE' (identifier | literal) (
+	 *           divideIntoStatement
+	 *         | divideIntoGivingStatement
+	 *         | divideByGivingStatement
+	 *     ) 'REMAINDER' identifier onSizeErrorPhrase? notOnSizeErrorPhrase? 'END-DIVIDE'?
+	 * divideIntoStatement:       'INTO' {identifier 'ROUNDED'?}+
+	 * divideIntoGivingStatement: 'INTO' (identifier | literal) 'GIVING' {identifier 'ROUNDED'?}+
+	 * divideByGivingStatement:     'BY' (identifier | literal) 'GIVING' {identifier 'ROUNDED'?}+
+	 */
+	public static AddSubtractMultiplyDivideStatement parseDivideStatement(TokenReader reader, ParserRegistry registry) {
+		if (!reader.optional(DIVIDE)) return null;
+
+		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
+		Expression expr1 = parseIdentifierOrLiteral(reader, registry);
+		if (reader.optional(BY)) {  // divideByGivingStatement
+			Expression expr2 = parseIdentifierOrLiteral(reader, registry);
+			reader.accept(GIVING);
+			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
+			stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+		} else if (reader.accept(INTO)) {  // divideIntoStatement or divideIntoGivingStatement
+			givingOrRegular(reader, registry, stmt);
+		}
+		reader.optional(END_DIVIDE);
+		return stmt.operator("/");
+	}
+
+	public static List<RoundedIdentifier> parseRoundedIdentifiers(TokenReader reader, ParserRegistry registry) {
+		List<RoundedIdentifier> list = new ArrayList<>();
+		while (reader.isKind(IDENTIFIER)) {
+			list.add(parseRoundedIdentifier(reader, registry));
+		};
+		return list;
+	}
+
+	private static RoundedIdentifier parseRoundedIdentifier(TokenReader reader, ParserRegistry registry) {
+		RoundedIdentifier ri = new RoundedIdentifier();
+		ri.id(parseIdentifier(reader, registry).id());
+		ri.rounded(reader.optional(ROUNDED));
+		return ri;
+	}
+
+	// == expression: (arithmetic-expression | conditional-expression) ==
+
+	/**-- arithmetic-expression: unary-expression [binary-operator unary-expression] --
+	 * 1. An identifier described as a numeric elementary item (including numeric functions)
+	 * 2. A numeric literal
+	 * 3. The figurative constant ZERO
+	 * 4. Identifiers and literals, as defined in items 1, 2, and 3, separated by arithmetic operators
+	 * 5. Two arithmetic expressions, as defined in items 1, 2, 3, or 4, separated by an arithmetic operator
+	 * 6. An arithmetic expression, as defined in items 1, 2, 3, 4, or 5, enclosed in parentheses
 	 * Any arithmetic expression can be preceded by a unary operator.
 	 *
 	 * arithmetic operators
-	 * > Binary operator
-	 *	 +  	Addition
-	 *	 -  	Subtraction
-	 *	 *  	Multiplication
-	 *	 /  	Division
-	 *	 ** 	Exponentiation
+	 * > Binary operator    Meaning
+	 *	    +  	            Addition
+	 *	    -  	            Subtraction
+	 *	    *  	            Multiplication
+	 *	    /  	            Division
+	 *	    ** 	            Exponentiation
 	 *
-	 * > Unary operator
-	 *	 + 	Multiplication by +1
-	 *	 - 	Multiplication by -1
+	 * > Unary operator     Meaning
+	 *	    + 	            Multiplication by +1
+	 *	    - 	            Multiplication by -1
+	 *
+	 * Precedence:
+	 * 1. Parentheses
+	 * 2. Unary operator
+	 * 3. Exponentiation
+	 * 4. Multiplication and division
+	 * 5. Addition and subtraction
 	 */
 	public static Expression parseArithmeticExpression(TokenReader reader, ParserRegistry registry) {
-		Token unaryOperator = reader.optionalAnyOfAndReturn(PLUS, MINUS);
-
-		AstNode node = parseAny(reader, registry);
-		return new ExpressionBase();
+		return parseBinaryExpression(reader, registry);
 	}
 
-	/** -- conditional expression = (simple condition | combined condition)
+	/** -- conditional-expression: (simple-condition | combined-condition) --
 	 * Simple condition:
 	 *        Relation condition         IF AGE < 18 THEN...
 	 *      | Condition-name condition   IF IS-CHILD THEN...
@@ -554,12 +1127,60 @@ public class CobolParser extends ParserBase {
 		return operator;
 	}
 
+	public static Expression parseBinaryExpression(TokenReader reader, ParserRegistry registry) {
+		Expression expr = parseUnaryExpression(reader, registry);
+		Token t = reader.optionalAnyOfAndReturn(PLUS, MINUS, STAR, SLASH);
+		if (t == null)
+			return expr;
+
+		BinaryExpression binaryExpression = new BinaryExpression().leftOperand(expr);
+		if (t.kind() == STAR && reader.optionalAnyOf(STAR)) {
+			binaryExpression.operator("**");
+		} else {
+			binaryExpression.operator(t.lexeme());
+		}
+		binaryExpression.rightOperand(parseUnaryExpression(reader, registry));
+		return binaryExpression;
+	}
+
+	public static Expression parseUnaryExpression(TokenReader reader, ParserRegistry registry) {
+		Token token = reader.optionalAnyOfAndReturn(PLUS, MINUS);
+		if (token != null) {
+			return new PrefixUnaryExpression().operator(token.lexeme())
+					.expression(parseUnaryExpression(reader, registry));
+		} else {
+			return parsePrimaryExpression(reader, registry);
+		}
+	}
+
+	public static Expression parsePrimaryExpression(TokenReader reader, ParserRegistry registry) {
+		Token t = null;
+		Expression expr = null;
+		if (reader.isKind(IDENTIFIER)) {
+			expr = parseIdentifier(reader, registry);
+		} else if ((t = reader.optionalAnyOfAndReturn(STRING_LITERAL)) != null) {
+			expr = new Literal<String>().value(t.lexeme());
+		} else if ((t = reader.optionalAnyOfAndReturn(NUMBER_LITERAL)) != null) {
+			expr = new Literal<String>().value(t.lexeme());
+		} else if (reader.isKind(LEFT_PAREN)) {
+			expr = parseParenExpression(reader, registry);
+		}
+		return expr;
+	}
+
+	public static ParenthesizedExpression parseParenExpression(TokenReader reader, ParserRegistry registry) {
+		reader.acceptAnyOf(LEFT_PAREN);
+		Expression expr = parseArithmeticExpression(reader, registry);  //
+		reader.acceptAnyOf(RIGHT_PAREN);
+		return new ParenthesizedExpression().expression(expr);
+	}
+
 	public static Expression parseIdentifierOrLiteral(TokenReader reader, ParserRegistry registry) {
 		if (reader.isKind(IDENTIFIER)) {
 			return parseIdentifier(reader, registry);
-		} else if (reader.isKind(NUMBER_LITERAL, STRING_LITERAL)) {
+		} else if (reader.isKindNextTokens(NUMBER_LITERAL, STRING_LITERAL)) {
 			return parseLiteral(reader, registry);
 		}
-		return null; // syntaxError(reader, "Neither IDENTIFIER nor LITERAL");
+		return syntaxError(reader, "Neither IDENTIFIER nor LITERAL");
 	}
 }

@@ -89,7 +89,7 @@ public class TokenReader {
 			return true;
 		}
 
-		syntaxError("accept() failed for token " + token + ".");
+		syntaxError("Token kind " + tokenKind + " is expected, but token " + token + " is parsed.");
 		return false;
 	}
 
@@ -142,19 +142,29 @@ public class TokenReader {
 
 	/** accept and advance only if the kind of current token and next tokens are same as @param tokenKinds. */
 	public boolean optionalNextTokens(String... tokenKinds) {
-		if (isKind(tokenKinds)) {
+		if (isKindNextTokens(tokenKinds)) {
 			nextTokens(tokenKinds.length); // move ahead if all matches
 			return true;
 		}
 		return false;
 	}
 
+	/** check if the kind of current token equals the @param tokenKind. */
 	public boolean isKind(String tokenKind) {
 		return tokenKind.equals(token.kind());
 	}
 
+	/** check if the kind of current token equals any of the @param tokenKinds. */
+	public boolean isKindAnyOf(String... tokenKinds) {
+		for (String tokenKind : tokenKinds) {
+			if (tokenKind.equals(token.kind()))
+				return true;
+		}
+		return false;
+	}
+
 	/** check if the kind of current token and next tokens are same as @param tokenKinds. */
-	public boolean isKind(String... tokenKinds) {
+	public boolean isKindNextTokens(String... tokenKinds) {
 		peekToken(tokenKinds.length - 1); // to peek n-1 next tokens.
 		for (int i = 0; i < tokenKinds.length; i++) {
 			Token t = peekToken(i);
@@ -163,14 +173,6 @@ public class TokenReader {
 			}
 		}
 		return true;
-	}
-
-	public boolean isKindAnyOf(String... tokenKinds) {
-		for (String tokenKind : tokenKinds) {
-			if (tokenKind.equals(token.kind()))
-				return true;
-		}
-		return false;
 	}
 
 	// call nextToken() n times

@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
  */
 @Getter @Setter @Accessors(fluent= true) @ToString
 public class ExpressionBase implements Expression {
-	/** the result type of this expression evaluation. used in Sentamics analysis phase. */
+	/** the result type of this expression evaluation. used in Semantics analysis phase. */
 	protected Expression type;
 
 	@Override

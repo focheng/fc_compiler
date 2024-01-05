@@ -10,7 +10,5 @@ import lombok.experimental.Accessors;
  * @author FC
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
-public class InputOutputSection extends StatementBase {
-	FileControlParagraph fileControlParagraph;
-	IoControlParagraph ioControlParagraph;
+public class IoControlParagraph extends StatementBase {
 }

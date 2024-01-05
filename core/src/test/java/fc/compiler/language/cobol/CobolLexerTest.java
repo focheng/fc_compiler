@@ -53,9 +53,9 @@ class CobolLexerTest extends LexerBaseTest {
 	@Test
 	void stringLiteral() {
 		Assertions.assertEquals("Token(STRING_LITERAL, ''single quoted string'', (1, 1))",
-				codeToToken("'single quoted string'", CobolLexer::scanSingleQuote).toString());
+				codeToToken("'single quoted string'", CobolLexer::onSingleQuote).toString());
 		Assertions.assertEquals("Token(STRING_LITERAL, '\"double quoted string\"', (1, 1))",
-				codeToToken("\"double quoted string\"", CobolLexer::scanDoubleQuote).toString());
+				codeToToken("\"double quoted string\"", CobolLexer::scanStringLiteral).toString());
 	}
 
 	@Test

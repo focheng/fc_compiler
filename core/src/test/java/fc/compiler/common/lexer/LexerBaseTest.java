@@ -1,11 +1,7 @@
 package fc.compiler.common.lexer;
 
-import fc.compiler.common.lexer.CodeReader;
-import fc.compiler.common.lexer.Lexer;
-import fc.compiler.common.lexer.LexerBase;
 import fc.compiler.common.token.Token;
 import fc.compiler.common.token.TokenKind;
-import fc.compiler.language.java.JavaLexer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +15,7 @@ import java.util.List;
 public class LexerBaseTest {
 	protected Token codeToToken(String code, Lexer lexer) {
 		CodeReader reader = new CodeReader(code.toCharArray());
-		reader.sp = reader.bp;
-		reader.newPosition();
+		reader.onStartToken();
 		return lexer.scan(reader);
 	}
 

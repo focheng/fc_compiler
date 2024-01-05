@@ -5,16 +5,14 @@ import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.StatementBase;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(fluent= true)
+@Getter @Setter @Accessors(fluent= true) @ToString
 public class SwitchCaseStatement<T extends Statement> extends StatementBase {
 	Expression expression;
-	List<T> statements = new ArrayList<>();
+	CompositeStatement<T> statements;
 }

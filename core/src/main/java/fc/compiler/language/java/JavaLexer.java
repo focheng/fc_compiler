@@ -27,10 +27,10 @@ public class JavaLexer extends LexerBase {
 		mapper.mapLexer(LF,     LexerBase::scanLineTerminator);
 		mapper.mapLexer(CR,     LexerBase::scanLineTerminator);
 
-		for (char c = 'a'; c < 'z'; c++) {
+		for (char c = 'a'; c <= 'z'; c++) {
 			mapper.mapLexer(c,     JavaLexer::scanIdentifier);
 		}
-		for (char c = 'A'; c < 'Z'; c++) {
+		for (char c = 'A'; c <= 'Z'; c++) {
 			mapper.mapLexer(c,     JavaLexer::scanIdentifier);
 		}
 		mapper.mapLexer('$',     JavaLexer::scanIdentifier);
@@ -68,8 +68,8 @@ public class JavaLexer extends LexerBase {
 		mapper.mapLexer('~', JavaLexer::scanTilde);
 		mapper.mapLexer('^', JavaLexer::scanCaret);
 
-		mapper.mapLexer('\'', LexerBase::scanSingleQuote);
-		mapper.mapLexer('\"', LexerBase::scanDoubleQuote);
+		mapper.mapLexer('\'', LexerBase::scanCharLiteral);
+		mapper.mapLexer('\"', LexerBase::scanStringLiteral);
 
 		mapper.setDefaultLexer(this::scanDefault);
 		return mapper;
@@ -274,12 +274,15 @@ public class JavaLexer extends LexerBase {
 
 	public static Token scanSlash(CodeReader reader) {
 		reader.accept('/');
-		if (reader.accept('/')) {
+		if (reader.accept('/')) {           // "//" for line comment
 			return scanLineComment(reader);
 		} else if (reader.accept('*')) {
 			if (reader.accept('*')) {
-				return scanJavaDoc(reader);
-			} else {
+				if (reader.accept('/'))     // "/**/" for empty block comment
+					return new Token(BLOCK_COMMENT, reader.position).lexeme(reader.lexeme());
+				else                            // "/**" for java doc
+					return scanJavaDoc(reader);
+			} else {                            // "/*" for block comment
 				return scanBlockComment(reader);
 			}
 		} else {
@@ -288,7 +291,17 @@ public class JavaLexer extends LexerBase {
 	}
 
 	public static Token scanBlockComment(CodeReader reader) {
-		throw new RuntimeException("not implemented");
+		while (reader.hasNext()) {
+			if (reader.accept('*')) {
+				if (reader.accept('/'))
+					break;
+				else
+					reader.nextChar();
+			} else {
+				reader.nextChar();
+			}
+		}
+		return new Token(BLOCK_COMMENT, reader.position).lexeme(reader.lexeme());
 	}
 
 	public static Token scanJavaDoc(CodeReader reader) {

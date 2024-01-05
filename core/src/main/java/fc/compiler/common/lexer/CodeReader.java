@@ -1,5 +1,7 @@
 package fc.compiler.common.lexer;
 
+import fc.compiler.common.token.Token;
+
 import java.util.Arrays;
 import java.util.function.Predicate;
 
@@ -10,18 +12,20 @@ import static fc.compiler.common.lexer.Constants.*;
  */
 public class CodeReader {
 	// -- text of source code and buffer information. --
-	public char[] code;  // the copy of source code from file. also input buffer.
+	protected char[] code;  // the copy of source code from file. also input buffer.
 	public char ch;      // the current CHaracter read in the source code.
-	public int bp = -1;  // Buffer Position/Pointer is the index of next char to be read.
+	protected int bp = -1;  // Buffer Position/Pointer is the index of next char to be read.
+						 // -1 indicate reading does not start.
 
 	// -- character buffer for lexeme of multiple characters like literal/identifier.
-	public int sp = 0;   // the Start Position of lexeme.
+	//StringBuilder sbLexeme = new StringBuilder();
+	protected int sp = 0;   // the Start Position of lexeme in the whole code.
 
 	// -- position information for token: file, line, column --
 	public Position position;
-	public String fileName;
-	public int lineNo = 1;
-	public int lineStartPosition;    // the start position of one line in the whole file.
+	protected String fileName;
+	protected int lineNo = 1;           // starting from 1
+	protected int lineStartPosition;    // the start position of current line in the whole file.
 
 	public CodeReader(char[] code) { this(code, null); }
 	public CodeReader(char[] code, String fileName) {
@@ -45,22 +49,34 @@ public class CodeReader {
 		return ch;
 	}
 
+	/** Return true if having more characters to read. if bp is -1, */
 	public boolean hasNext() {
 		return bp < code.length - 1;
 	}
 
 	public char peekChar(int n) {
-		ch = code[bp + n];
+		ch = code[bp + n];  // TODO: check overflow
 		return ch;
 	}
 
 	public String lexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
 
-	public void newPosition() {
+	public void onStartToken() { onStartToken(null); }
+	public void onStartToken(Token token) {
+		sp = bp;
 		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
+		if (token != null)
+			token.position(position);
 	}
 
+	public void onEndToken(Token token) {
+		token.lexeme(lexeme());
+	}
+
+	// -- check type of current character --
+
 	public boolean is(char c) { return this.ch == c; }
+
 	public boolean isDecDigit() { return '0' <= ch && ch <= '9'; }
 	public boolean isOctDigit() { return '0' <= ch && ch <= '7'; }
 	public boolean isHexDigit() {
@@ -72,6 +88,9 @@ public class CodeReader {
 	public boolean isLetter() { return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'); }
 	public boolean isLetterOrDigit() { return isLetter() || isDecDigit(); }
 
+	public boolean isWhiteSpace() {
+		return SPACE == ch || ch == TAB || ch == FF;
+	}
 	public boolean isEndOfLine() {
 		return '\r' == ch || ch == '\n';
 	}
@@ -131,6 +150,10 @@ public class CodeReader {
 		return true;
 	}
 
+	public boolean acceptWhiteSpaces() {
+		return skipWhitespaces() > 0;
+	}
+
 	public boolean acceptLineTerminator() {
 		boolean hasCR = accept(CR);
 		boolean hasLF = accept(LF);
@@ -152,10 +175,12 @@ public class CodeReader {
 	}
 
 	/** Skip over ASCII white space characters. */
-	public void skipWhitespace() {
-		while (accept(SPACE, TAB, FF)) {
-			// accept() already read the next character
+	public int skipWhitespaces() {
+		int count = 0;
+		for (; isWhiteSpace(); count++) {
+			nextChar();
 		}
+		return count;
 	}
 
 	/** Skip to end of line */

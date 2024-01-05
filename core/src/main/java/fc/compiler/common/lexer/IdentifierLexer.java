@@ -1,6 +1,7 @@
 package fc.compiler.common.lexer;
 
 import fc.compiler.common.token.Token;
+import fc.compiler.common.token.TokenKind;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -14,8 +15,9 @@ import static fc.compiler.common.token.TokenKind.IDENTIFIER;
  */
 @Getter @Setter @Accessors(fluent= true)
 public class IdentifierLexer extends LexerBase {
-	private Predicate<Character> isIdentifierStart;
-	private Predicate<Character> isIdentifierPart;
+	private Predicate<Character> isIdentifierStart = IdentifierLexer::isIdentifierStartDefault;
+	private Predicate<Character> isIdentifierPart  = IdentifierLexer::isIdentifierPartDefault;
+	private boolean caseSensitive = true;
 
 
 	@Override
@@ -23,7 +25,22 @@ public class IdentifierLexer extends LexerBase {
 		if (!reader.accept(isIdentifierStart)) {
 			return lexError(reader, "Invalid identifier starting character.");
 		}
+
 		while (reader.accept(isIdentifierPart)) ;
-		return new Token(IDENTIFIER, reader.position).lexeme(reader.lexeme());
+
+		String lexeme = reader.lexeme();
+		String key = caseSensitive ? lexeme : lexeme.toUpperCase();
+		String kind = TokenKind.reservedKeywords.getOrDefault(key, IDENTIFIER);
+		Token token = new Token(kind, reader.position).lexeme(lexeme);
+		return token;
+	}
+
+	public static boolean isIdentifierStartDefault(char ch) {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z');
+	}
+
+	public static boolean isIdentifierPartDefault(char ch) {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z')
+				|| ('0' <= ch && ch <= '9') || ch == '_';
 	}
 }

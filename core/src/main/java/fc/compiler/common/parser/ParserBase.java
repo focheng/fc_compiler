@@ -1,6 +1,7 @@
 package fc.compiler.common.parser;
 
 import fc.compiler.common.ast.AstNode;
+import fc.compiler.common.ast.statement.CompositeStatement;
 import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.expression.*;
@@ -83,7 +84,7 @@ public class ParserBase implements Parser {
 		throw new RuntimeException("Not Used/Implemented");
 	}
 
-	protected static AstNode syntaxError(TokenReader reader, String message) {
+	protected static <T> T syntaxError(TokenReader reader, String message) {
 		log.error(message);
 		return null;
 	}
@@ -93,22 +94,30 @@ public class ParserBase implements Parser {
 		return null;
 	}
 
-	public static AstNode parseAny(TokenReader reader, ParserRegistry registry) {
+	public static <T extends AstNode> T parseGeneric(TokenReader reader, ParserRegistry registry) {
 		Token token = reader.token();
-		Parser parser = registry.get(token.kind());
+		Parser<T> parser = registry.get(token.kind());
 		if (parser != null) {
-			AstNode node = parser.parse(reader, registry);
+			T node = parser.parse(reader, registry);
 			return node;
 		}
 		return syntaxError(reader, "No registered parser for token kind " + token.kind());
 	}
 
 	public static Statement parseStatement(TokenReader reader, ParserRegistry registry) {
-		AstNode node = parseAny(reader, registry);
-		if (node instanceof Statement statement) {
-			return statement;
+		return parseGeneric(reader, registry);
+	}
+
+
+	public static CompositeStatement<Statement> parseStatementList(TokenReader reader, ParserRegistry registry) {
+		CompositeStatement<Statement> statementList = new CompositeStatement<>();
+		for (;;) {
+			Statement statement = parseStatement(reader, registry);
+			if (statement == null)
+				break;
+			statementList.add(statement);
 		}
-		return null;
+		return statementList;
 	}
 
 	public static Statement parseIfStatement(TokenReader reader, ParserRegistry registry) {
@@ -147,19 +156,34 @@ public class ParserBase implements Parser {
 	// == expressions ==
 
 	public static Expression parseExpression(TokenReader reader, ParserRegistry registry) {
-		AstNode node = parseAny(reader, registry);
-		if (node instanceof Expression expression) {
-			return expression;
+		return parseGeneric(reader, registry);
+	}
+
+	public static List<Expression> parseExpressionListZeroOrMore(TokenReader reader, ParserRegistry registry, String tokenKind) {
+		List<Expression> list = new ArrayList<>();
+		while (reader.optional(tokenKind)) {
+			list.add(parseExpression(reader, registry));
 		}
-		return null;
+		return list;
+	}
+
+	public static List<Expression> parseExpressionListOneOrMore(TokenReader reader, ParserRegistry registry,
+	                                                            String tokenKind) {
+		return parseExpressionListOneOrMore(reader, registry, tokenKind, ParserBase::parseExpression);
+	}
+
+	public static List<Expression> parseExpressionListOneOrMore(TokenReader reader, ParserRegistry registry,
+	                                                            String separatorKind, Parser<Expression> exprParser) {
+		List<Expression> list = new ArrayList<>();
+		do {
+			list.add(exprParser.parse(reader, registry));
+		} while (reader.optional(separatorKind));
+		return list;
 	}
 
 	public static CommaExpression parseCommaExpression(TokenReader reader, ParserRegistry registry) {
-		List<Expression> expressions = new ArrayList<>();
-		do {
-			expressions.add(parseExpression(reader, registry));
-		} while (reader.isKind(COMMA));
-		return new CommaExpression().expressions(expressions);
+		return new CommaExpression()
+				.expressions(parseExpressionListOneOrMore(reader, registry, COMMA));
 	}
 
 	public static String[] DEFAULT_COMPOUND_ASSIGNMENT_OPERATORS = {
@@ -284,6 +308,14 @@ public class ParserBase implements Parser {
 		return expr;
 	}
 
+	public static Expression parseEnclosedExpression(TokenReader reader, ParserRegistry registry,
+	                                     String leftTokenKind, String rightTokenKind) {
+		reader.acceptAnyOf(leftTokenKind);
+		Expression expr = parseExpression(reader, registry);
+		reader.acceptAnyOf(rightTokenKind);
+		return expr;
+	}
+
 	public static ParenthesizedExpression parseParenExpression(TokenReader reader, ParserRegistry registry) {
 		reader.acceptAnyOf(LEFT_PAREN);
 		Expression expr = parseExpression(reader, registry);
@@ -294,16 +326,16 @@ public class ParserBase implements Parser {
 
 	public static Identifier parseIdentifier(TokenReader reader, ParserRegistry registry) {
 		Token token = reader.acceptAnyOfAndReturn(IDENTIFIER);
-		if (token != null) {
-			return new Identifier().id(token.lexeme());
-		} else {
-			syntaxError(reader, "failed to parse identifier");
-			return null;
+		if (token == null) {
+			return syntaxError(reader, "failed to parse identifier");
 		}
+
+		return new Identifier().id(token.lexeme());
 	}
 
 	public static Literal parseLiteral(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.acceptAnyOfAndReturn();
+		Token token = reader.acceptAnyOfAndReturn(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL,
+				CHAR_LITERAL);
 		if (token != null) {
 			return new Literal<String>().value(token.lexeme());
 		} else {
