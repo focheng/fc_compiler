@@ -1,6 +1,6 @@
 package fc.compiler.common.parser;
 
-import fc.compiler.common.lexer.CodeReader;
+import fc.compiler.common.lexer.CodeReaderBase;
 import fc.compiler.common.lexer.Lexer;
 import fc.compiler.common.token.Token;
 import lombok.Getter;
@@ -22,13 +22,13 @@ import static fc.compiler.common.token.TokenKind.*;
 @Accessors(fluent = true) @Slf4j
 public class TokenReader {
 	@Getter @Setter	protected Lexer lexer;
-	@Getter @Setter	protected CodeReader codeReader;
+	@Getter @Setter	protected CodeReaderBase codeReaderBase;
 	@Getter protected Token token;  // current token
 	protected List<Token> lookaheadTokens = new ArrayList<>();
 	@Getter protected boolean ignoreSpecialTokens = true;  // white spaces, line terminator and comments
 
-	public TokenReader(Lexer lexer, CodeReader codeReader) {
-		this.codeReader = codeReader;
+	public TokenReader(Lexer lexer, CodeReaderBase codeReaderBase) {
+		this.codeReaderBase = codeReaderBase;
 		this.lexer = lexer;
 
 		nextToken();
@@ -63,7 +63,7 @@ public class TokenReader {
 	protected Token doNextToken() {
 		Token t = null;
 		do {
-			t = lexer.scan(codeReader);
+			t = lexer.scan(codeReaderBase);
 		} while (ignoreSpecialTokens && isSpecialToken(t));
 		return t;
 	}

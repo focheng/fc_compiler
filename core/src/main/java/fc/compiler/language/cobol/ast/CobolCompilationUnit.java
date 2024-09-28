@@ -17,5 +17,5 @@ import java.util.List;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class CobolCompilationUnit extends CompilationUnit {
-	List<CobolProgram> programs;
+	List<CobolProgram> cobolProgramList;
 }

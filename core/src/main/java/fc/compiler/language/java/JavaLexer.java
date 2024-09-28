@@ -1,6 +1,6 @@
 package fc.compiler.language.java;
 
-import fc.compiler.common.lexer.CodeReader;
+import fc.compiler.common.lexer.CodeReaderBase;
 import fc.compiler.common.lexer.LexerBase;
 import fc.compiler.common.lexer.LexerMapper;
 import fc.compiler.common.token.Token;
@@ -75,12 +75,12 @@ public class JavaLexer extends LexerBase {
 		return mapper;
 	}
 
-	protected Token scanDefault(CodeReader reader) {
+	protected Token scanDefault(CodeReaderBase reader) {
 		reader.nextChar();
 		return null;
 	}
 
-	public static Token scanIdentifier(CodeReader reader) {
+	public static Token scanIdentifier(CodeReaderBase reader) {
 		if (!Character.isJavaIdentifierStart(reader.ch))
 			return null;
 
@@ -94,7 +94,7 @@ public class JavaLexer extends LexerBase {
 				.lexeme(reader.lexeme());
 	}
 
-	public static Token scanNumber(CodeReader reader) {
+	public static Token scanNumber(CodeReaderBase reader) {
 		if (reader.ch == '0') { // '0x1A', '0b01', '017'
 			reader.nextChar();
 			if (reader.ch == 'x' || reader.ch == 'X') {
@@ -111,7 +111,7 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	public static Token scanDecimalNumberLiteral(CodeReader reader) {
+	public static Token scanDecimalNumberLiteral(CodeReaderBase reader) {
 		// scan integral part
 		for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
 
@@ -123,7 +123,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 	}
 
-	public static Token scanHexNumberLiteral(CodeReader reader) {
+	public static Token scanHexNumberLiteral(CodeReaderBase reader) {
 		// scan integral part
 		for (; reader.isHexDigit(); reader.nextChar()) {}
 
@@ -135,7 +135,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(16);
 	}
 
-	public static Token scanOctNumberLiteral(CodeReader reader) {
+	public static Token scanOctNumberLiteral(CodeReaderBase reader) {
 		// scan integral part
 		for (; reader.isOctDigit(); reader.nextChar()) {}
 
@@ -147,7 +147,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(8);
 	}
 
-	public static Token scanBinaryNumberLiteral(CodeReader reader) {
+	public static Token scanBinaryNumberLiteral(CodeReaderBase reader) {
 		// scan integral part
 		for (; reader.ch == '0' || reader.ch == '1'; reader.nextChar()) {}
 
@@ -159,13 +159,13 @@ public class JavaLexer extends LexerBase {
 		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme()).radix(2);
 	}
 
-	public static Token scanFractionAndSuffix(CodeReader reader) {
+	public static Token scanFractionAndSuffix(CodeReaderBase reader) {
 		for (; '0' <= reader.ch && reader.ch <= '9'; reader.nextChar()) {}
 		return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
 	}
 
 
-	public static Token scanDot(CodeReader reader) {
+	public static Token scanDot(CodeReaderBase reader) {
 		if (reader.accept("...")) {
 			return new Token(ELLIPSIS, reader.position).lexeme("...");
 		} else {
@@ -181,24 +181,24 @@ public class JavaLexer extends LexerBase {
 		return null;
 	}
 
-	public static Token scanPlus(CodeReader reader) {
+	public static Token scanPlus(CodeReaderBase reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '+', PLUS_PLUS, PLUS_EQUAL, PLUS);
 	}
 
-	public static Token scanMinus(CodeReader reader) {
+	public static Token scanMinus(CodeReaderBase reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '-', MINUS_MINUS, MINUS_EQUAL, MINUS);
 	}
 
-	public static Token scanAmpersand(CodeReader reader) {
+	public static Token scanAmpersand(CodeReaderBase reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '&', AMPERSAND_AMPERSAND, AMPERSAND_EQUAL, AMPERSAND);
 	}
 
-	public static Token scanBar(CodeReader reader) {
+	public static Token scanBar(CodeReaderBase reader) {
 		return scanDoubleOrEqualCompoundOperator(reader, '|', BAR_BAR, BAR_EQUAL, BAR);
 	}
 
-	public static Token scanDoubleOrEqualCompoundOperator(CodeReader reader, char operator,
-	                                                       String doubleKind, String compoundKind, String simpleKind) {
+	public static Token scanDoubleOrEqualCompoundOperator(CodeReaderBase reader, char operator,
+	                                                      String doubleKind, String compoundKind, String simpleKind) {
 		reader.accept(operator);
 		if (reader.accept(operator)) {
 			return new Token(doubleKind,    reader.position).lexeme(reader.lexeme());
@@ -209,37 +209,37 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	public static Token scanStar(CodeReader reader) {
+	public static Token scanStar(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '*', STAR_EQUAL, STAR);
 	}
 
-	public static Token scanEqual(CodeReader reader) {
+	public static Token scanEqual(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '=', EQUAL_EQUAL, EQUAL);
 	}
 
-	public static Token scanPercent(CodeReader reader) {
+	public static Token scanPercent(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '%', PERCENT_EQUAL, PERCENT);
 	}
 
-	public static Token scanTilde(CodeReader reader) {
+	public static Token scanTilde(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '~', TILDE_EQUAL, TILDE);
 	}
 
-	public static Token scanCaret(CodeReader reader) {
+	public static Token scanCaret(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '^', CARET_EQUAL, CARET);
 	}
 
-	public static Token scanExclamationMark(CodeReader reader) {
+	public static Token scanExclamationMark(CodeReaderBase reader) {
 		return scanEqualCompoundOperator(reader, '!', EXCLAMATION_MARK_EQUAL, EXCLAMATION_MARK);
 	}
 
-	public static Token scanEqualCompoundOperator(CodeReader reader, char operator,
+	public static Token scanEqualCompoundOperator(CodeReaderBase reader, char operator,
 	                                              String compoundKind, String simpleKind) {
 		reader.accept(operator);
 		return scanEqualCompoundOperator(reader, compoundKind, simpleKind);
 	}
 
-	public static Token scanEqualCompoundOperator(CodeReader reader, String compoundKind, String simpleKind) {
+	public static Token scanEqualCompoundOperator(CodeReaderBase reader, String compoundKind, String simpleKind) {
 		if (reader.accept('=')) {
 			return new Token(compoundKind, reader.position).lexeme(reader.lexeme());
 		} else {
@@ -247,17 +247,17 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	public static Token scanGT(CodeReader reader) {
+	public static Token scanGT(CodeReaderBase reader) {
 		return scanGTOrLT(reader, '>', GT_GT_EQUAL, GT_GT, GT_EQUAL, GT);
 	}
 
-	public static Token scanLT(CodeReader reader) {
+	public static Token scanLT(CodeReaderBase reader) {
 		return scanGTOrLT(reader, '<', LT_LT_EQUAL, LT_LT, LT_EQUAL, LT);
 	}
 
-	public static Token scanGTOrLT(CodeReader reader, char operator,
-	                                String doubleCompoundKind, String doubleKind,
-	                                String compoundKind, String simpleKind) {
+	public static Token scanGTOrLT(CodeReaderBase reader, char operator,
+	                               String doubleCompoundKind, String doubleKind,
+	                               String compoundKind, String simpleKind) {
 		reader.accept(operator);
 		if (reader.accept(operator)) {
 			if (reader.accept('=')) {
@@ -272,7 +272,7 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	public static Token scanSlash(CodeReader reader) {
+	public static Token scanSlash(CodeReaderBase reader) {
 		reader.accept('/');
 		if (reader.accept('/')) {           // "//" for line comment
 			return scanLineComment(reader);
@@ -290,7 +290,7 @@ public class JavaLexer extends LexerBase {
 		}
 	}
 
-	public static Token scanBlockComment(CodeReader reader) {
+	public static Token scanBlockComment(CodeReaderBase reader) {
 		while (reader.hasNext()) {
 			if (reader.accept('*')) {
 				if (reader.accept('/'))
@@ -304,7 +304,7 @@ public class JavaLexer extends LexerBase {
 		return new Token(BLOCK_COMMENT, reader.position).lexeme(reader.lexeme());
 	}
 
-	public static Token scanJavaDoc(CodeReader reader) {
+	public static Token scanJavaDoc(CodeReaderBase reader) {
 		throw new RuntimeException("not implemented");
 	}
 

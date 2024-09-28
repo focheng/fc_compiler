@@ -3,7 +3,7 @@ package fc.compiler.language.cobol;
 import fc.compiler.common.ast.AstNode;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.statement.IfStatement;
-import fc.compiler.common.lexer.CodeReader;
+import fc.compiler.common.lexer.CodeReaderBase;
 import fc.compiler.common.parser.ParserHub;
 import fc.compiler.common.parser.TokenReader;
 import fc.compiler.language.cobol.ast.CobolCompilationUnit;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  */
 public class CobolParserTest {
 	protected AstNode codeToAst(String code, ParserHub parser) {
-		CodeReader reader = new CodeReader(code.toCharArray());
+		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		reader.onStartToken();
 		TokenReader tokenReader = new TokenReader(new CobolLexer(), reader);
 //		CobolParser mainParser = new CobolParser();
@@ -54,9 +54,9 @@ public class CobolParserTest {
 	}
 
 	private static void doParseCompilationUnit(String code) {
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReader(code.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(code.toCharArray()));
 		CobolCompilationUnit unit = CobolParser.parseCompilationUnit(tokenReader, CobolParser.initRegistry());
-		CobolProgram program = unit.programs().get(0);
+		CobolProgram program = unit.cobolProgramList().get(0);
 		System.out.println(program.idDivision());
 		System.out.println(program.environmentDivision());
 		System.out.println(program.dataDivision());
@@ -82,7 +82,7 @@ public class CobolParserTest {
 				"         DISPLAY 'GOT THIRD CLASS'\n" +
 				"  END-IF\n" +
 				"END-IF.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReader(codeSimpleIf.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(codeSimpleIf.toCharArray()));
 		IfStatement statement = CobolParser.parseIfStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}
@@ -102,7 +102,7 @@ public class CobolParserTest {
 				" WHEN \"C\" DISPLAY 'Student got SECOND CLASS'\n" +
 				" WHEN OTHER DISPLAY 'Student Failed'\n" +
 				" END-EVALUATE.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReader(codeMultiWhens.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(codeMultiWhens.toCharArray()));
 		Statement statement = CobolParser.parseEvaluateStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}

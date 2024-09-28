@@ -1,6 +1,8 @@
 package fc.compiler.common.parser;
 
 import fc.compiler.common.ast.AstNode;
+import fc.compiler.common.ast.expression.Identifier;
+import fc.compiler.common.ast.expression.Literal;
 import fc.compiler.common.ast.statement.CompositeStatement;
 import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.Statement;
@@ -109,7 +111,7 @@ public class ParserBase implements Parser {
 	}
 
 
-	public static CompositeStatement<Statement> parseStatementList(TokenReader reader, ParserRegistry registry) {
+	public static CompositeStatement<Statement> parseCompositeStatement(TokenReader reader, ParserRegistry registry) {
 		CompositeStatement<Statement> statementList = new CompositeStatement<>();
 		for (;;) {
 			Statement statement = parseStatement(reader, registry);
@@ -308,10 +310,11 @@ public class ParserBase implements Parser {
 		return expr;
 	}
 
-	public static Expression parseEnclosedExpression(TokenReader reader, ParserRegistry registry,
-	                                     String leftTokenKind, String rightTokenKind) {
+	protected static Expression parseEnclosedExpression(TokenReader reader, ParserRegistry registry,
+	                                                    String leftTokenKind, String rightTokenKind,
+	                                                    Parser<Expression> parser) {
 		reader.acceptAnyOf(leftTokenKind);
-		Expression expr = parseExpression(reader, registry);
+		Expression expr = parser.parse(reader, registry);
 		reader.acceptAnyOf(rightTokenKind);
 		return expr;
 	}
@@ -336,7 +339,10 @@ public class ParserBase implements Parser {
 	public static Literal parseLiteral(TokenReader reader, ParserRegistry registry) {
 		Token token = reader.acceptAnyOfAndReturn(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL,
 				CHAR_LITERAL);
-		if (token != null) {
+		if (token.kind() == CHAR_LITERAL || token.kind() == STRING_LITERAL) {
+			String value = token.lexeme().substring(1, token.lexeme().length()-1);
+			return new Literal<String>().value(value);
+		} else if (token != null) {
 			return new Literal<String>().value(token.lexeme());
 		} else {
 			syntaxError(reader, "failed to parse literal");

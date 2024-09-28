@@ -1,8 +1,11 @@
 package fc.compiler.language.cobol;
 
+import fc.compiler.common.ast.expression.CompositeExpression;
 import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.expression.*;
+import fc.compiler.common.ast.expression.Identifier;
+import fc.compiler.common.ast.expression.Literal;
 import fc.compiler.common.ast.statement.*;
 import fc.compiler.common.parser.ParserBase;
 import fc.compiler.common.parser.ParserRegistry;
@@ -16,7 +19,6 @@ import fc.compiler.language.cobol.ast.division.*;
 import fc.compiler.language.cobol.ast.expression.RoundedIdentifier;
 import fc.compiler.language.cobol.ast.statement.*;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,58 +26,7 @@ import java.util.List;
 import static fc.compiler.common.token.TokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
-/**
- * Code Hierarchical Organizations
- * IDENTIFICATION  ENVIRONMENT     DATA            PROCEDURE
- *   DIVISION       DIVISION       DIVISION        DIVISION
- * ------------------------------------------------------------
- *                 Sections        Sections        Sections
- * Paragraphs      Paragraphs                      Paragraphs
- * Entries         Entries         Entries         Sentences
- * Clauses         Clauses         Clauses         Statements
- *                 Phrases         Phrases         Phrases
- *
- * Entry is a series of clauses that ends with a separator period.
- * Clause is an ordered set of consecutive COBOL character-strings that specifies an attribute of an entry.
- * Sentence is a sequence of one or more statements that ends with a separator period.
- * Statement specifies an action to be taken by the program.
- * Phrases: Each clause or statement can be subdivided into smaller units called phrases.
- * Within the PROCEDURE DIVISION, a procedure consists of a section or a group of sections,
- * and a paragraph or group of paragraphs.
- *
- * statements can be divided into 4 categories:
- * - imperative statement: either specifies an unconditional action to be taken by the program,
- *                      or is a conditional statement terminated by its explicit scope terminator.
- *      - Arithmetic: COMPUTE, ADD, SUBTRACT, MULTIPLY, DIVIDE
- *      - Data movement: MOVE, SET, STRING, UNSTRING, ...
- *      - Input-Output: READ, WRITE,
- *      - Ending: STOP RUN, EXIT PROGRAM, EXIT METHOD, GOBACK
- *      - Procedure-branching: GO TO, PERFORM, CONTINUE, ALTER
- *      - Program or method linkage: CALL, CANCEL, INVOKE
- *      - Table-handling: SET
- * - conditional statement: specifies that the truth value of a condition is to be determined
- *              and that the subsequent action of the object program is dependent on this truth value.
- *      - Decision: IF, EVALUATE
- *      - Arithmetic: (COMPUTE | ADD | SUBTRACT | MULTIPLY | DIVIDE) ... [NOT] ON SIZE ERROR
- *      - Data movement: (STRING | UNSTRING) ... [NOT] ON OVERFLOW
- *      - Input-output: READ ... AT END
- *      - Program or method linkage: CALL ... ON OVERFLOW
- *      - Table-handling: SEARCH
- * - delimited scope statement:  uses an explicit scope terminator to turn a conditional statement
- *              into an imperative statement.
- *      - Explicit scope terminator: END-IF, END-EVALUATE, END-PERFORM, ...
- *      - Implicit scope terminator: is a separator period that terminates the scope of
- *                  all previous statements not yet terminated at the end of any sentence.
- * - compiler-directing statement: causes the compiler to take a specific action during compilation time.
- *      e.g. copy statement
- *
- * Expression can be dividied into 2 categories:
- * - Arithmetic expressions are used as operands of certain conditional and arithmetic statements.
- * - Conditional expression causes the object program to select alternative paths of control,
- * depending on the truth value of a test. specified in EVALUATE, IF, PERFORM, and SEARCH statements.
- *
- * @author FC
- */
+
 @Slf4j
 public class CobolParser extends ParserBase {
 	CobolCompilerOptions options;
@@ -117,23 +68,9 @@ public class CobolParser extends ParserBase {
 		return map;
 	}
 
-	/**
-	 * compilationUnit: idDivision
-	 *          environmentDivision?
-	 *          dataDivision?
-	 *          procedureDivision?
-	 *          nestedProgram*
-	 *          endProgramStatement?
-	 * nestProgram: identificationDivision environmentDivision? dataDivision? procedureDivision? nestedProgram* endProgramStatement?
-	 * endProgramStatement: 'END' 'PROGRAM' programName '.'
-	 *
-	 * A program contained within another program is called a "nested program".
-	 * A nested program can itself contain a nested program.
-	 * The outermost program is called the "compilation unit".
-	 */
 	public static CobolCompilationUnit parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
 		List<CobolProgram> list = parsePrograms(reader, registry);
-		return new CobolCompilationUnit().programs(list);
+		return new CobolCompilationUnit().cobolProgramList(list);
 	}
 
 	public static List<CobolProgram> parsePrograms(TokenReader reader, ParserRegistry registry) {
@@ -152,7 +89,7 @@ public class CobolParser extends ParserBase {
 				.environmentDivision(parseEnvironmentDivision(reader, registry))
 				.dataDivision(parseDataDivision(reader, registry))
 				.procedureDivision(parseProcedureDivision(reader, registry))
-				.nestedPrograms(parsePrograms(reader, registry))
+				.cobolProgramList(parsePrograms(reader, registry))
 				;
 		Identifier programName = parseEndProgramStatement(reader, registry);
 		// TODO: check end program name with program id paragraph.
@@ -175,10 +112,10 @@ public class CobolParser extends ParserBase {
 	public static IdDivision parseIdDivision(TokenReader reader, ParserRegistry registry) {
 		reader.acceptAnyOf(IDENTIFICATION, ID);
 		reader.accept(DIVISION);
-		reader.accept(SEPARATOR_PERIOD);
+		reader.accept(DOT);
 
 		IdDivision idDivision = new IdDivision()
-				.programName(parseProgramIdParagraph(reader, registry));
+				.programIdParagraph(parseProgramIdParagraph(reader, registry));
 
 		parseIdDivisionOptionalParagraph(reader, idDivision);
 
@@ -186,44 +123,33 @@ public class CobolParser extends ParserBase {
 	}
 
 	public static boolean isIdDivision(TokenReader reader) {
-		return reader.isKindNextTokens(IDENTIFICATION, DIVISION, SEPARATOR_PERIOD)
-				|| reader.isKindNextTokens(ID, DIVISION, SEPARATOR_PERIOD);
+		return reader.isKindNextTokens(IDENTIFICATION, DIVISION, DOT)
+				|| reader.isKindNextTokens(ID, DIVISION, DOT);
 	}
 
 	/** programIdParagraph: "PROGRAM-ID" "."? program-name [ [ "IS" ] "INITIAL" [ "PROGRAM" ] ] "."? */
 	private static Identifier parseProgramIdParagraph(TokenReader reader, ParserRegistry registry) {
 		reader.accept(PROGRAM_ID);
-		reader.optional(SEPARATOR_PERIOD);
+		reader.optional(DOT);
 		Identifier programName = parseIdentifier(reader, registry);
-		reader.optional(SEPARATOR_PERIOD);
+		reader.optional(DOT);
 		return programName;
 	}
 
-	/**
-	 * idDivisionOptionalParagraph:
-	 *      ('AUTHOR'
-	 *      | 'INSTALLATION'
-	 *      | 'DATE_WRITTEN'
-	 *      | 'DATE_COMPILED'
-	 *      | 'SECURITY'
-	 *      ) '.' comment-entry*
-	 * A comment entry is an IDENTIFICATION DIVISION entry. It consists of any characters belonging to the computer	character set.
-	 * A comment entry is an obsolete element. Avoid using this element when creating new programs.
-	 */
 	private static void parseIdDivisionOptionalParagraph(TokenReader reader, IdDivision idDivision) {
 		for (Token token = null; ; ) {
 			token = reader.optionalAnyOfAndReturn(AUTHOR, INSTALLATION, DATE_WRITTEN, DATE_COMPILED, SECURITY);
 			if (token == null) {
 				break;
 			}
-			idDivision.attributes().put(token.kind(), (String)token.attribute(token.kind()));
+//			idDivision.attributes().put(token.kind(), (String)token.attribute(token.kind()));
 		}
 	}
 
 
 	/** [ "ENVIRONMENT" "DIVISION" "." environment-division-content ] */
 	public static EnvironmentDivision parseEnvironmentDivision(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(ENVIRONMENT, DIVISION, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(ENVIRONMENT, DIVISION, DOT)) return null;
 
 		return new EnvironmentDivision()
 				.configurationSection(parseConfigurationSection(reader, registry))
@@ -232,21 +158,21 @@ public class CobolParser extends ParserBase {
 
 	/** configuration-section	=	"CONFIGURATION" "SECTION" "." configuration-section-paragraphs */
 	public static ConfigurationSection parseConfigurationSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(CONFIGURATION, SECTION, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(CONFIGURATION, SECTION, DOT)) return null;
 
 		ConfigurationSection config = new ConfigurationSection();
 		// SOURCE_COMPUTER '.' computerName (WITH? DEBUGGING MODE)? '.'
-		if (reader.optionalNextTokens(SOURCE_COMPUTER, SEPARATOR_PERIOD)) {
-			config.sourceComputerName(parseIdentifier(reader, registry));
+		if (reader.optionalNextTokens(SOURCE_COMPUTER, DOT)) {
+			config.sourceComputerParagraph(parseIdentifier(reader, registry));
 			reader.optional(WITH);
 			reader.optionalNextTokens(DEBUGGING, MODE);
-			reader.optional(SEPARATOR_PERIOD);
+			reader.optional(DOT);
 		}
 
 		// OBJECT_COMPUTER '.' computerName objectComputerClause* '.'
-		if (reader.optionalNextTokens(OBJECT_COMPUTER, SEPARATOR_PERIOD)) {
-			config.objectComputerName(parseIdentifier(reader, registry));
-			reader.optional(SEPARATOR_PERIOD);
+		if (reader.optionalNextTokens(OBJECT_COMPUTER, DOT)) {
+			config.objectComputerParagraph(parseIdentifier(reader, registry));
+			reader.optional(DOT);
 		}
 
 		return config;
@@ -254,7 +180,7 @@ public class CobolParser extends ParserBase {
 
 	/** input-output-section	=	"INPUT-OUTPUT" "SECTION" "." [ file-control-paragraph ] [ i-o-control-paragraph ] */
 	public static InputOutputSection parseInputOutputSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(INPUT_OUTPUT, SECTION, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(INPUT_OUTPUT, SECTION, DOT)) return null;
 
 		FileControlParagraph fileControlParagraph = parseFileControlParagraph(reader, registry);
 		IoControlParagraph ioControlParagraph = parseIoControlParagraph(reader, registry);
@@ -278,11 +204,11 @@ public class CobolParser extends ParserBase {
 	 *     )
 	 */
 	private static FileControlParagraph parseFileControlParagraph(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(FILE_CONTROL, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(FILE_CONTROL, DOT)) return null;
 
 		List<FileControlEntry> list = parseFileControlEntries(reader, registry);
 
-		return new FileControlParagraph().fileControlEntries(list);
+		return new FileControlParagraph().fileControlEntryList(list);
 	}
 
 	private static List<FileControlEntry> parseFileControlEntries(TokenReader reader, ParserRegistry registry) {
@@ -290,7 +216,7 @@ public class CobolParser extends ParserBase {
 		for (; reader.optional(SELECT); ) {
 			reader.optional(OPTIONAL);
 			Identifier fileName = parseIdentifier(reader, registry);
-			CompositeStatement<Statement> statementList = parseStatementList(reader, registry);
+			CompositeStatement<Statement> statementList = parseCompositeStatement(reader, registry);
 			list.add(new FileControlEntry().fileName(fileName)
 					.statementList(statementList));
 		}
@@ -302,7 +228,7 @@ public class CobolParser extends ParserBase {
 
 		reader.optional(TO);
 		Expression assignee = parseIdentifierOrLiteral(reader, registry);
-		return new AssignClause().assignee(assignee);
+		return new AssignClause().assignmentName(assignee);
 	}
 
 	private static IoControlParagraph parseIoControlParagraph(TokenReader reader, ParserRegistry registry) {
@@ -321,7 +247,7 @@ public class CobolParser extends ParserBase {
 	 *      programLibrarySection?
 	 */
 	public static DataDivision parseDataDivision(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(DATA, DIVISION, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(DATA, DIVISION, DOT)) return null;
 
 		return new DataDivision()
 				.fileSection(parseFileSection(reader, registry))
@@ -334,27 +260,27 @@ public class CobolParser extends ParserBase {
 	 *      - FILE SECTION '.' sortFileDescriptionEntry?
 	 */
 	public static FileSection parseFileSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(FILE, SECTION, SEPARATOR_PERIOD)) return null;
+		if (!reader.optionalNextTokens(FILE, SECTION, DOT)) return null;
 
 		return new FileSection();
 	}
 
 	/** [ "WORKING-STORAGE" "SECTION" "." { ( record-description-entry | data-item-description-entry ) }* ] */
 	public static WorkingStorageSection parseWorkingStorageSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(WORKING_STORAGE, SECTION, SEPARATOR_PERIOD)) {
+		if (!reader.optionalNextTokens(WORKING_STORAGE, SECTION, DOT)) {
 			return null;
 		}
 
 		WorkingStorageSection wsSection = new WorkingStorageSection();
 		DataDescriptionEntry stmt = parseDataDescriptionEntry(reader, registry);
-		wsSection.variableDeclarations().add(stmt);
+		wsSection.dataDescriptionEntryList().add(stmt);
 
 		return wsSection;
 	}
 
 	/**  ["LINKAGE" "SECTION" "." { ( record-description-entry | data-item-description-entry ) }* ] */
 	public static LinkageSection parseLinkageSection(TokenReader reader, ParserRegistry registry) {
-		if (!reader.optionalNextTokens(LINKAGE, SECTION, SEPARATOR_PERIOD)) {
+		if (!reader.optionalNextTokens(LINKAGE, SECTION, DOT)) {
 			return null;
 		}
 		return new LinkageSection();
@@ -423,18 +349,18 @@ public class CobolParser extends ParserBase {
 		}
 		DataDescriptionEntry variable = new DataDescriptionEntry().dataName(dataName);
 
-		while (reader.token().kind() != SEPARATOR_PERIOD) {
+		while (reader.token().kind() != DOT) {
 			Statement statement = parseStatement(reader, registry);
-			if (statement instanceof PictureClause picString) {
-				variable.pictureClause(picString);
-			} else if (statement instanceof ValueClause value) {
-				variable.valueClause(value);
+			if (statement instanceof DataPictureClause picString) {
+				variable.dataPictureClause(picString);
+			} else if (statement instanceof DataValueClause value) {
+				variable.dataValueClause(value);
 			} else {
 				syntaxError(reader, "");
 			}
 			reader.nextToken(); // FIXME
 		}
-		reader.acceptAnyOf(SEPARATOR_PERIOD);
+		reader.acceptAnyOf(DOT);
 
 		return variable;
 	}
@@ -464,11 +390,11 @@ public class CobolParser extends ParserBase {
 	/** picture-clause = ( "PICTURE" | "PIC" ) [ "IS" ] picture-string
 	 *  picture-string = currency? (picchar+ repeat?)+ (punctuation (picchar+ repeat?)+)*
 	 */
-	public static PictureClause parsePictureClause(TokenReader reader, ParserRegistry registry) {
+	public static DataPictureClause parsePictureClause(TokenReader reader, ParserRegistry registry) {
 		reader.acceptAnyOf(PICTURE, PIC);
 		reader.optionalAnyOf(IS);
 		CharacterString picString = parseCharacterString(reader, registry);
-		return new PictureClause().picString(picString);
+		return new DataPictureClause().picString(picString);
 	}
 
 	public static CharacterString parseCharacterString(TokenReader reader, ParserRegistry registry) {
@@ -480,11 +406,11 @@ public class CobolParser extends ParserBase {
 		return new CharacterString().format(sb.toString());
 	}
 
-	public static ValueClause parseValueClause(TokenReader reader, ParserRegistry registry) {
+	public static DataValueClause parseValueClause(TokenReader reader, ParserRegistry registry) {
 		if (reader.optionalAnyOf(VALUE)) {
 			Token t = reader.acceptAnyOfAndReturn(NUMBER_LITERAL, ZERO, ZEROS, ZEROES, SPACE, SPACES);
 			if (t != null) {
-				return new ValueClause().value(t.lexeme());
+				return new DataValueClause().value(t.lexeme());
 			}
 		}
 		return null;
@@ -505,27 +431,27 @@ public class CobolParser extends ParserBase {
 		if (!reader.isKindNextTokens(PROCEDURE, DIVISION)) return null;
 
 		ProcedureDivision division = new ProcedureDivision();
-		if (reader.optionalNextTokens(PROCEDURE, DIVISION, SEPARATOR_PERIOD)) {
+		if (reader.optionalNextTokens(PROCEDURE, DIVISION, DOT)) {
 			// do nothing
 		} else if (reader.optionalNextTokens(PROCEDURE, DIVISION, USING)) {
-			division.usingClause(parseUsingClause(reader, registry));
+			division.procedureUsingClause(parseUsingClause(reader, registry));
 		} else {
 			return null;
 		}
 
 		while (!reader.optionalAnyOf(EOF) && !reader.optionalNextTokens(END, PROGRAM)) {
 			Statement statement = parseStatement(reader, registry);
-			division.statements().add(statement);
+			division.statementList().add(statement);
 		}
 		return division;
 	}
 
-	public static UsingClause parseUsingClause(TokenReader reader, ParserRegistry registry) {
-		UsingClause usingClause = new UsingClause();
+	public static ProcedureUsingClause parseUsingClause(TokenReader reader, ParserRegistry registry) {
+		ProcedureUsingClause procedureUsingClause = new ProcedureUsingClause();
 		while (reader.token().kind() == IDENTIFIER) {
-			usingClause.parameters().add(parseIdentifier(reader, registry));
+			procedureUsingClause.procedureParameterList().add(parseIdentifier(reader, registry));
 		}
-		return usingClause;
+		return procedureUsingClause;
 	}
 
 	public static DisplayClause parseDisplayClause(TokenReader reader, ParserRegistry registry) {
@@ -604,7 +530,7 @@ public class CobolParser extends ParserBase {
 			caseStatement.value(parseEvaluatePhrase(reader, registry));
 			caseStatement.alsoSelects(parseEvaluateAlsoSelects(reader, registry));
 		}
-		caseStatement.statements(parseStatementList(reader, registry));
+		caseStatement.statements(parseCompositeStatement(reader, registry));
 		return caseStatement;
 	}
 
@@ -659,7 +585,7 @@ public class CobolParser extends ParserBase {
 	public static Statement parseExitStatement(TokenReader reader, ParserRegistry registry) {
 		if (!reader.optional(EXIT)) return null;
 
-		return new ExpressionStatement().expression(Identifier.get("exit"));
+		return new ExpressionStatement().expression(Identifier.of("exit"));
 	}
 
 	public static Statement parseStopStatement(TokenReader reader, ParserRegistry registry) {
@@ -670,7 +596,7 @@ public class CobolParser extends ParserBase {
 			Literal literal = parseLiteral(reader, registry);
 		}
 
-		return new ExpressionStatement().expression(Identifier.get("stop"));
+		return new ExpressionStatement().expression(Identifier.of("stop"));
 	}
 
 	public static ContinueStatement parseContinueStatement(TokenReader reader, ParserRegistry registry) {
@@ -691,7 +617,7 @@ public class CobolParser extends ParserBase {
 
 	public static ExpressionStatement parseGoBackStatement(TokenReader reader, ParserRegistry registry) {
 		if (!reader.optionalAnyOf(GOBACK)) return null;
-		return new ExpressionStatement().expression(Identifier.get("goback"));
+		return new ExpressionStatement().expression(Identifier.of("goback"));
 	}
 
 	public static ExpressionStatement parseCallStatement(TokenReader reader, ParserRegistry registry) {
@@ -741,15 +667,15 @@ public class CobolParser extends ParserBase {
 
 		PerformStatement stmt = new PerformStatement();
 		if (varyingOrUntilPhrase(reader, registry, stmt)) { // inline varying or until
-			stmt.statementList(parseStatementList(reader, registry));
+			stmt.statementList(parseCompositeStatement(reader, registry));
 			reader.accept(END_PERFORM);
 		} else if (timesPhrase(reader, registry, stmt)) {   // inline times
-			stmt.statementList(parseStatementList(reader, registry));
+			stmt.statementList(parseCompositeStatement(reader, registry));
 			reader.accept(END_PERFORM);
 		} else if (outOfLineThroughPhrase(reader, registry, stmt)) {
 		} else if (outOfLinePhrase(reader, registry, stmt)) {
 		} else {    // inline basic
-			stmt.statementList(parseStatementList(reader, registry));
+			stmt.statementList(parseCompositeStatement(reader, registry));
 			reader.accept(END_PERFORM);
 		}
 
@@ -899,7 +825,7 @@ public class CobolParser extends ParserBase {
 		if (!reader.optionalAnyOf(COMPUTE)) return null;
 
 		List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
-		CompositeExpression variable = new CompositeExpression().expressions(ids);
+		CompositeExpression variable = new CompositeExpression().children(ids);
 		reader.acceptAnyOf(EQUAL);
 		Expression expr = parseArithmeticExpression(reader, registry);
 		reader.optionalAnyOf(END_COMPUTE);
@@ -931,7 +857,7 @@ public class CobolParser extends ParserBase {
 			stmt.leftOperand(parseIdentifier(reader, registry));
 		} else {
 			List<Expression> list = parseExpressionListOneOrMore(reader, registry, TO);
-			stmt.rightOperand(new CompositeExpression().expressions(list));
+			stmt.rightOperand(new CompositeExpression().children(list));
 			reader.optional(kindMiddle);
 
 			boolean isGiving = false;
@@ -939,7 +865,7 @@ public class CobolParser extends ParserBase {
 				stmt.giving(true);
 				reader.accept(GIVING);
 				List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
-				stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+				stmt.givingIdentifiers(new CompositeExpression().children(ids));
 			} else {
 				givingOrRegular(reader, registry, stmt);
 			}
@@ -954,14 +880,14 @@ public class CobolParser extends ParserBase {
 		isGiving = reader.optional(GIVING);
 		if (isGiving) { // addToGivingStatement
 			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
-			stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+			stmt.givingIdentifiers(new CompositeExpression().children(ids));
 		} else {        // addToStatement
 			boolean rounded = reader.optional(ROUNDED);
 			RoundedIdentifier ri = new RoundedIdentifier().rounded(rounded);
 			ri.id(id.id());
 			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
 			ids.add(0, ri); // insert the 1st id at the beginning.
-			stmt.leftOperand(new CompositeExpression().expressions(ids));
+			stmt.leftOperand(new CompositeExpression().children(ids));
 		}
 	}
 
@@ -1000,7 +926,7 @@ public class CobolParser extends ParserBase {
 			Expression expr2 = parseIdentifierOrLiteral(reader, registry);
 			reader.accept(GIVING);
 			List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
-			stmt.givingIdentifiers(new CompositeExpression().expressions(ids));
+			stmt.givingIdentifiers(new CompositeExpression().children(ids));
 		} else if (reader.accept(INTO)) {  // divideIntoStatement or divideIntoGivingStatement
 			givingOrRegular(reader, registry, stmt);
 		}

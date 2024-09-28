@@ -18,4 +18,15 @@ public class QuantifiedExpression extends ExpressionBase {
 	// range {n}, {n,}, {n,m}
 //	int min = -1;
 //	int max = -1;
+
+	public boolean isOptional() {
+		return "*".equals(quantifierType) || "?".equals(quantifierType);
+	}
+	public boolean isMultiple() {
+		return "*".equals(quantifierType) || "+".equals(quantifierType);
+	}
+
+	public boolean isZeroOrOne()    { return "?".equals(quantifierType); }
+	public boolean isZeroOrMore()   { return "*".equals(quantifierType); }
+	public boolean isOneOrMore()    { return "+".equals(quantifierType); }
 }

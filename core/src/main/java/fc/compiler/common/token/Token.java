@@ -8,14 +8,18 @@ import java.util.HashMap;
 
 /**
  * Token is the output of lexer and the input of parser.
- * Token consists of a token kind (named in dragon book) and optional attribute values.
- * A lexeme is a sequence of characters in the source code that matches the pattern for a token
- * and is identified by the lexer as an instance of that token.
+ * Token consists of token kind and optional attribute values:
+ * - token kind (named in dragon book) is the type of token. see TokenKind.
+ * - lexeme is a sequence of characters in the source code that matches the pattern for a token
+ *   and is identified by the lexer as an instance of that token.
+ * - position in the source code.
+ *      - line
+ *      - character position in the line
+ * - channel in Antlr. Hidden channel is not parsed by parser.
  *
  * @author FC
  */
-
-@Getter @Setter @Accessors(fluent = true)
+@Getter @Setter @Accessors(fluent = true, chain = true)
 @NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
 public class Token implements Cloneable {
 	@NonNull protected String kind;

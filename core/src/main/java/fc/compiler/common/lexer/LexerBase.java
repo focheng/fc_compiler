@@ -7,8 +7,6 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Objects;
-
 import static fc.compiler.common.lexer.Constants.CR;
 import static fc.compiler.common.lexer.Constants.LF;
 import static fc.compiler.common.token.TokenKind.*;
@@ -18,12 +16,12 @@ import static fc.compiler.common.token.TokenKind.*;
  * Base class for Lexer (Lexical Analyzer).
  * @author FC
  */
-@Slf4j @Getter @Setter @Accessors(fluent = true)
+@Slf4j @Getter @Setter @Accessors(fluent = true, chain = true)
 public class LexerBase implements Lexer {
 	protected LexerMapper mapper;
 
 	@Override
-	public Token scan(CodeReader reader) {
+	public Token scan(CodeReaderBase reader) {
 		reader.onStartToken();
 		Lexer lexer = mapper.getLexer(reader.ch);
 		if (lexer != null) {
@@ -34,50 +32,50 @@ public class LexerBase implements Lexer {
 		}
 	}
 
-	protected static Token lexError(CodeReader reader, String s) {
+	protected static Token lexError(CodeReaderBase reader, String s) {
 		reader.nextChar();
 		log.error(s);
 		return new Token(ERROR, reader.position).lexeme(reader.lexeme());
 	}
 
-	protected static Token scanDummy(CodeReader reader) {
+	protected static Token scanDummy(CodeReaderBase reader) {
 		reader.nextChar();
 		return new Token(TokenKind.ERROR, reader.position).lexeme(reader.lexeme());
 	}
 
-	public static Token scanEOF(CodeReader reader) {
+	public static Token scanEOF(CodeReaderBase reader) {
 		reader.nextChar();
 		return new Token(EOF, reader.position);
 	}
 
-	public static Token scanWhiteSpaces(CodeReader reader) {
+	public static Token scanWhiteSpaces(CodeReaderBase reader) {
 		reader.skipWhitespaces();
 		return new Token(WHITE_SPACES, reader.position).lexeme(reader.lexeme());    // by default, white spaces are ignored.
 	}
 
-	public static Token scanLineTerminator(CodeReader reader) {
+	public static Token scanLineTerminator(CodeReaderBase reader) {
 		if (reader.acceptLineTerminator()) {
 			return new Token(LINE_TERMINATOR, reader.position).lexeme(reader.lexeme());
 		}
 		return null;
 	}
 
-	public static Token scanComma(CodeReader reader)        { return scanSingleCharToken(reader, COMMA); }
-	public static Token scanSemicolon(CodeReader reader)    { return scanSingleCharToken(reader, SEMICOLON);}
-	public static Token scanColon(CodeReader reader)        { return scanSingleCharToken(reader, COLON);}
-	public static Token scanLeftParen(CodeReader reader)    { return scanSingleCharToken(reader, LEFT_PAREN);}
-	public static Token scanRightParen(CodeReader reader)   { return scanSingleCharToken(reader, RIGHT_PAREN);}
-	public static Token scanLeftBracket(CodeReader reader)  { return scanSingleCharToken(reader, LEFT_BRACKET);}
-	public static Token scanRightBracket(CodeReader reader) { return scanSingleCharToken(reader, RIGHT_BRACKET);}
-	public static Token scanLeftBrace(CodeReader reader)    { return scanSingleCharToken(reader, LEFT_BRACE);}
-	public static Token scanRightBrace(CodeReader reader)   { return scanSingleCharToken(reader, RIGHT_BRACE);}
-	public static Token scanQuestion(CodeReader reader)     { return scanSingleCharToken(reader, QUESTION);}
-	public static Token scanAt(CodeReader reader)           { return scanSingleCharToken(reader, AT);}
-	public static Token scanPlus(CodeReader reader)         { return scanSingleCharToken(reader, PLUS);}
-	public static Token scanStar(CodeReader reader)         { return scanSingleCharToken(reader, STAR);}
-	public static Token scanBar(CodeReader reader)          { return scanSingleCharToken(reader, BAR);}
+	public static Token scanComma(CodeReaderBase reader)        { return scanSingleCharToken(reader, COMMA); }
+	public static Token scanSemicolon(CodeReaderBase reader)    { return scanSingleCharToken(reader, SEMICOLON);}
+	public static Token scanColon(CodeReaderBase reader)        { return scanSingleCharToken(reader, COLON);}
+	public static Token scanLeftParen(CodeReaderBase reader)    { return scanSingleCharToken(reader, LEFT_PAREN);}
+	public static Token scanRightParen(CodeReaderBase reader)   { return scanSingleCharToken(reader, RIGHT_PAREN);}
+	public static Token scanLeftBracket(CodeReaderBase reader)  { return scanSingleCharToken(reader, LEFT_BRACKET);}
+	public static Token scanRightBracket(CodeReaderBase reader) { return scanSingleCharToken(reader, RIGHT_BRACKET);}
+	public static Token scanLeftBrace(CodeReaderBase reader)    { return scanSingleCharToken(reader, LEFT_BRACE);}
+	public static Token scanRightBrace(CodeReaderBase reader)   { return scanSingleCharToken(reader, RIGHT_BRACE);}
+	public static Token scanQuestion(CodeReaderBase reader)     { return scanSingleCharToken(reader, QUESTION);}
+	public static Token scanAt(CodeReaderBase reader)           { return scanSingleCharToken(reader, AT);}
+	public static Token scanPlus(CodeReaderBase reader)         { return scanSingleCharToken(reader, PLUS);}
+	public static Token scanStar(CodeReaderBase reader)         { return scanSingleCharToken(reader, STAR);}
+	public static Token scanBar(CodeReaderBase reader)          { return scanSingleCharToken(reader, BAR);}
 
-	protected static Token scanSingleCharToken(CodeReader reader, String kind) {
+	protected static Token scanSingleCharToken(CodeReaderBase reader, String kind) {
 		reader.nextChar();
 		return new Token(kind, reader.position).lexeme(reader.lexeme());
 	}
@@ -90,10 +88,10 @@ public class LexerBase implements Lexer {
 //		return scanStringLiteral(reader);
 //	}
 //
-	public static Token scanStringLiteral(CodeReader reader) {
+	public static Token scanStringLiteral(CodeReaderBase reader) {
 		return scanStringLiteral(reader, '\"');
 	}
-	public static Token scanStringLiteral(CodeReader reader, char quote) {
+	public static Token scanStringLiteral(CodeReaderBase reader, char quote) {
 		reader.accept(quote);
 		while (reader.ch != quote
 				&& reader.ch != CR
@@ -103,15 +101,18 @@ public class LexerBase implements Lexer {
 			reader.nextChar();
 		}
 		if (reader.accept(quote)) {
-			return new Token(STRING_LITERAL, reader.position).lexeme(reader.lexeme());
+			String lexeme = reader.lexeme();
+			String value = lexeme.substring(1, lexeme.length()-1);;
+			return new Token(STRING_LITERAL, reader.position).lexeme(lexeme)
+					.attribute("value", value);
 		} else {
 			lexError(reader, "invalid string literal: " + reader.lexeme());
 			return null;
 		}
 	}
 
-	public static Token scanCharLiteral(CodeReader reader) { return scanCharLiteral(reader, '\''); }
-	public static Token scanCharLiteral(CodeReader reader, char quote) {
+	public static Token scanCharLiteral(CodeReaderBase reader) { return scanCharLiteral(reader, '\''); }
+	public static Token scanCharLiteral(CodeReaderBase reader, char quote) {
 		reader.accept(quote);
 		if (reader.accept(quote)) {
 			return lexError(reader, "Empty character literal.");
@@ -127,19 +128,19 @@ public class LexerBase implements Lexer {
 
 
 	/** Common escaped characters are: \r, \n, \t, \\, \", \' */
-	private static char scanEscapedChar(CodeReader reader) {
+	private static char scanEscapedChar(CodeReaderBase reader) {
 		if (reader.ch == '\\') {
 
 		}
 		return 0;
 	}
 
-	public static Token scanLineComment(CodeReader reader) {
+	public static Token scanLineComment(CodeReaderBase reader) {
 		reader.skipToEndOfLine();
 		return new Token(LINE_COMMENT, reader.position).lexeme(reader.lexeme());
 	}
 
-	public static Token scanIdentifier(CodeReader reader) {
+	public static Token scanIdentifier(CodeReaderBase reader) {
 		if (!reader.isLetter())
 			return lexError(reader, "Identifier must be start with letter.");
 

@@ -1,0 +1,158 @@
+package fc.compiler.language.antlr.traditional;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
+/**
+ * @author FC
+ */
+public class AsciiTable {
+	@Getter @Setter @Accessors(fluent = true)
+	@NoArgsConstructor @AllArgsConstructor
+	public static class AsciiChar {
+		char   c;
+		String dec;
+		String oct;
+		String hex;
+		String bin;
+		String token;
+		String description;
+	}
+
+	public static final AsciiChar[] table127 = new AsciiChar[] {
+			// The first 32 characters in the ASCII-table are unprintable control codes and are used to control peripherals such as printers.
+			new AsciiChar((char)0x00,	"0",	"000",	"00",	"00000000",	"NUL",	"Null character"),
+			new AsciiChar((char)0x01,	"1",	"001",	"01",	"00000001",	"SOH",	"Start of Heading"),
+			new AsciiChar((char)0x02,	"2",	"002",	"02",	"00000010",	"STX",	"Start of Text"),
+			new AsciiChar((char)0x03,	"3",	"003",	"03",	"00000011",	"ETX",	"End of Text"),
+			new AsciiChar((char)0x04,	"4",	"004",	"04",	"00000100",	"EOT",	"End of Transmission"),
+			new AsciiChar((char)0x05,	"5",	"005",	"05",	"00000101",	"ENQ",	"Enquiry"),
+			new AsciiChar((char)0x06,	"6",	"006",	"06",	"00000110",	"ACK",	"Acknowledge"),
+			new AsciiChar((char)0x07,	"7",	"007",	"07",	"00000111",	"BEL",	"Bell, Alert"),
+			new AsciiChar((char)0x08,	"8",	"010",	"08",	"00001000",	"BS",	"Backspace"),
+			new AsciiChar((char)0x09,	"9",	"011",	"09",	"00001001",	"HT",	"Horizontal Tab"),
+			new AsciiChar((char)0x0A,	"10",	"012",	"0A",	"00001010",	"LF",	"Line Feed"),
+			new AsciiChar((char)0x0B,	"11",	"013",	"0B",	"00001011",	"VT",	"Vertical Tabulation"),
+			new AsciiChar((char)0x0C,	"12",	"014",	"0C",	"00001100",	"FF",	"Form Feed"),
+			new AsciiChar((char)0x0D,	"13",	"015",	"0D",	"00001101",	"CR",	"Carriage Return"),
+			new AsciiChar((char)0x0E,	"14",	"016",	"0E",	"00001110",	"SO",	"Shift Out"),
+			new AsciiChar((char)0x0F,	"15",	"017",	"0F",	"00001111",	"SI",	"Shift In"),
+			new AsciiChar((char)0x10,	"16",	"020",	"10",	"00010000",	"DLE",	"Data Link Escape"),
+			new AsciiChar((char)0x11,	"17",	"021",	"11",	"00010001",	"DC1",	"Device Control One (XON)"),
+			new AsciiChar((char)0x12,	"18",	"022",	"12",	"00010010",	"DC2",	"Device Control Two"),
+			new AsciiChar((char)0x13,	"19",	"023",	"13",	"00010011",	"DC3",	"Device Control Three (XOFF)"),
+			new AsciiChar((char)0x14,	"20",	"024",	"14",	"00010100",	"DC4",	"Device Control Four"),
+			new AsciiChar((char)0x15,	"21",	"025",	"15",	"00010101",	"NAK",	"Negative Acknowledge"),
+			new AsciiChar((char)0x16,	"22",	"026",	"16",	"00010110",	"SYN",	"Synchronous Idle"),
+			new AsciiChar((char)0x17,	"23",	"027",	"17",	"00010111",	"ETB",	"End of Transmission Block"),
+			new AsciiChar((char)0x18,	"24",	"030",	"18",	"00011000",	"CAN",	"Cancel"),
+			new AsciiChar((char)0x19,	"25",	"031",	"19",	"00011001",	"EM",	"End of medium"),
+			new AsciiChar((char)0x1A,	"26",	"032",	"1A",	"00011010",	"SUB",	"Substitute"),
+			new AsciiChar((char)0x1B,	"27",	"033",	"1B",	"00011011",	"ESC",	"Escape"),
+			new AsciiChar((char)0x1C,	"28",	"034",	"1C",	"00011100",	"FS",	"File Separator"),
+			new AsciiChar((char)0x1D,	"29",	"035",	"1D",	"00011101",	"GS",	"Group Separator"),
+			new AsciiChar((char)0x1E,	"30",	"036",	"1E",	"00011110",	"RS",	"Record Separator"),
+			new AsciiChar((char)0x1F,	"31",	"037",	"1F",	"00011111",	"US",	"Unit Separator"),
+
+			// Codes 32-127 are printable characters, represent letters, digits, punctuation marks, and a few miscellaneous symbols.
+			new AsciiChar((char)' ',	"32",	"040",	"20",	"00100000",	"SPACE",	"Space"),
+			new AsciiChar((char)'!',	"33",	"041",	"21",	"00100001",	"!",	"Exclamation mark"),
+			new AsciiChar((char)'"',	"34",	"042",	"22",	"00100010",	"DOUBLE_QUOTE",	"Double quotes (or speech marks)"),
+			new AsciiChar((char)'#',	"35",	"043",	"23",	"00100011",	"#",	"Number sign"),
+			new AsciiChar((char)'$',	"36",	"044",	"24",	"00100100",	"DOLLAR",	"Dollar"),
+			new AsciiChar((char)'%',	"37",	"045",	"25",	"00100101",	"PERCENT",	"Per cent sign"),
+			new AsciiChar((char)'&',	"38",	"046",	"26",	"00100110",	"AMPERSAND",	"Ampersand"),
+			new AsciiChar((char)'\'',	"39",	"047",	"27",	"00100111",	"SINGLE_QUOTE",	"Single quote"),
+			new AsciiChar((char)'(',	"40",	"050",	"28",	"00101000",	"LEFT_PAREN",	"Open parenthesis (or open bracket)"),
+			new AsciiChar((char)')',	"41",	"051",	"29",	"00101001",	"RIGHT_PAREN",	"Close parenthesis (or close bracket)"),
+			new AsciiChar((char)'*',	"42",	"052",	"2A",	"00101010",	"STAR",	"Asterisk"),
+			new AsciiChar((char)'+',	"43",	"053",	"2B",	"00101011",	"PLUS",	"Plus"),
+			new AsciiChar((char)',',	"44",	"054",	"2C",	"00101100",	"COMMA",	"Comma"),
+			new AsciiChar((char)'-',	"45",	"055",	"2D",	"00101101",	"MINUS",	"Hyphen-minus"),
+			new AsciiChar((char)'.',	"46",	"056",	"2E",	"00101110",	"DOT",	"Period, dot or full stop"),
+			new AsciiChar((char)'/',	"47",	"057",	"2F",	"00101111",	"SLASH",	"Slash or divide"),
+			new AsciiChar((char)'0',	"48",	"060",	"30",	"00110000",	"",	"Zero"),
+			new AsciiChar((char)'1',	"49",	"061",	"31",	"00110001",	"",	"One"),
+			new AsciiChar((char)'2',	"50",	"062",	"32",	"00110010",	"",	"Two"),
+			new AsciiChar((char)'3',	"51",	"063",	"33",	"00110011",	"",	"Three"),
+			new AsciiChar((char)'4',	"52",	"064",	"34",	"00110100",	"",	"Four"),
+			new AsciiChar((char)'5',	"53",	"065",	"35",	"00110101",	"",	"Five"),
+			new AsciiChar((char)'6',	"54",	"066",	"36",	"00110110",	"",	"Six"),
+			new AsciiChar((char)'7',	"55",	"067",	"37",	"00110111",	"",	"Seven"),
+			new AsciiChar((char)'8',	"56",	"070",	"38",	"00111000",	"",	"Eight"),
+			new AsciiChar((char)'9',	"57",	"071",	"39",	"00111001",	"",	"Nine"),
+			new AsciiChar((char)':',	"58",	"072",	"3A",	"00111010",	"COLON",	"Colon"),
+			new AsciiChar((char)';',	"59",	"073",	"3B",	"00111011",	"SEMICOLON",	"Semicolon"),
+			new AsciiChar((char)'<',	"60",	"074",	"3C",	"00111100",	"LT",	"Less than (or open angled bracket)"),
+			new AsciiChar((char)'=',	"61",	"075",	"3D",	"00111101",	"EQ",	"Equals"),
+			new AsciiChar((char)'>',	"62",	"076",	"3E",	"00111110",	"GT",	"Greater than (or close angled bracket)"),
+			new AsciiChar((char)'?',	"63",	"077",	"3F",	"00111111",	"QUESTION",	"Question mark"),
+			new AsciiChar((char)'@',	"64",	"100",	"40",	"01000000",	"AT",	"At sign"),
+			new AsciiChar((char)'A',	"65",	"101",	"41",	"01000001",	"",	"Uppercase A"),
+			new AsciiChar((char)'B',	"66",	"102",	"42",	"01000010",	"",	"Uppercase B"),
+			new AsciiChar((char)'C',	"67",	"103",	"43",	"01000011",	"",	"Uppercase C"),
+			new AsciiChar((char)'D',	"68",	"104",	"44",	"01000100",	"",	"Uppercase D"),
+			new AsciiChar((char)'E',	"69",	"105",	"45",	"01000101",	"",	"Uppercase E"),
+			new AsciiChar((char)'F',	"70",	"106",	"46",	"01000110",	"",	"Uppercase F"),
+			new AsciiChar((char)'G',	"71",	"107",	"47",	"01000111",	"",	"Uppercase G"),
+			new AsciiChar((char)'H',	"72",	"110",	"48",	"01001000",	"",	"Uppercase H"),
+			new AsciiChar((char)'I',	"73",	"111",	"49",	"01001001",	"",	"Uppercase I"),
+			new AsciiChar((char)'J',	"74",	"112",	"4A",	"01001010",	"",	"Uppercase J"),
+			new AsciiChar((char)'K',	"75",	"113",	"4B",	"01001011",	"",	"Uppercase K"),
+			new AsciiChar((char)'L',	"76",	"114",	"4C",	"01001100",	"",	"Uppercase L"),
+			new AsciiChar((char)'M',	"77",	"115",	"4D",	"01001101",	"",	"Uppercase M"),
+			new AsciiChar((char)'N',	"78",	"116",	"4E",	"01001110",	"",	"Uppercase N"),
+			new AsciiChar((char)'O',	"79",	"117",	"4F",	"01001111",	"",	"Uppercase O"),
+			new AsciiChar((char)'P',	"80",	"120",	"50",	"01010000",	"",	"Uppercase P"),
+			new AsciiChar((char)'Q',	"81",	"121",	"51",	"01010001",	"",	"Uppercase Q"),
+			new AsciiChar((char)'R',	"82",	"122",	"52",	"01010010",	"",	"Uppercase R"),
+			new AsciiChar((char)'S',	"83",	"123",	"53",	"01010011",	"",	"Uppercase S"),
+			new AsciiChar((char)'T',	"84",	"124",	"54",	"01010100",	"",	"Uppercase T"),
+			new AsciiChar((char)'U',	"85",	"125",	"55",	"01010101",	"",	"Uppercase U"),
+			new AsciiChar((char)'V',	"86",	"126",	"56",	"01010110",	"",	"Uppercase V"),
+			new AsciiChar((char)'W',	"87",	"127",	"57",	"01010111",	"",	"Uppercase W"),
+			new AsciiChar((char)'X',	"88",	"130",	"58",	"01011000",	"",	"Uppercase X"),
+			new AsciiChar((char)'Y',	"89",	"131",	"59",	"01011001",	"",	"Uppercase Y"),
+			new AsciiChar((char)'Z',	"90",	"132",	"5A",	"01011010",	"",	"Uppercase Z"),
+			new AsciiChar((char)'[',	"91",	"133",	"5B",	"01011011",	"LEFT_BRACKET",	"Opening bracket"),
+			new AsciiChar((char)'\\',	"92",	"134",	"5C",	"01011100",	null,	"Backslash"),
+			new AsciiChar((char)']',	"93",	"135",	"5D",	"01011101",	"RIGHT_BRACKET",	"Closing bracket"),
+			new AsciiChar((char)'^',	"94",	"136",	"5E",	"01011110",	"CARET",	"Caret - circumflex"),
+			new AsciiChar((char)'_',	"95",	"137",	"5F",	"01011111",	"",	"Underscore"),
+			new AsciiChar((char)'`',	"96",	"140",	"60",	"01100000",	"GRAVE",	"Grave accent"),
+			new AsciiChar((char)'a',	"97",	"141",	"61",	"01100001",	"",	"Lowercase a"),
+			new AsciiChar((char)'b',	"98",	"142",	"62",	"01100010",	"",	"Lowercase b"),
+			new AsciiChar((char)'c',	"99",	"143",	"63",	"01100011",	"",	"Lowercase c"),
+			new AsciiChar((char)'d',	"100",	"144",	"64",	"01100100",	"",	"Lowercase d"),
+			new AsciiChar((char)'e',	"101",	"145",	"65",	"01100101",	"",	"Lowercase e"),
+			new AsciiChar((char)'f',	"102",	"146",	"66",	"01100110",	"",	"Lowercase f"),
+			new AsciiChar((char)'g',	"103",	"147",	"67",	"01100111",	"",	"Lowercase g"),
+			new AsciiChar((char)'h',	"104",	"150",	"68",	"01101000",	"",	"Lowercase h"),
+			new AsciiChar((char)'i',	"105",	"151",	"69",	"01101001",	"",	"Lowercase i"),
+			new AsciiChar((char)'j',	"106",	"152",	"6A",	"01101010",	"",	"Lowercase j"),
+			new AsciiChar((char)'k',	"107",	"153",	"6B",	"01101011",	"",	"Lowercase k"),
+			new AsciiChar((char)'l',	"108",	"154",	"6C",	"01101100",	"",	"Lowercase l"),
+			new AsciiChar((char)'m',	"109",	"155",	"6D",	"01101101",	"",	"Lowercase m"),
+			new AsciiChar((char)'n',	"110",	"156",	"6E",	"01101110",	"",	"Lowercase n"),
+			new AsciiChar((char)'o',	"111",	"157",	"6F",	"01101111",	"",	"Lowercase o"),
+			new AsciiChar((char)'p',	"112",	"160",	"70",	"01110000",	"",	"Lowercase p"),
+			new AsciiChar((char)'q',	"113",	"161",	"71",	"01110001",	"",	"Lowercase q"),
+			new AsciiChar((char)'r',	"114",	"162",	"72",	"01110010",	"",	"Lowercase r"),
+			new AsciiChar((char)'s',	"115",	"163",	"73",	"01110011",	"",	"Lowercase s"),
+			new AsciiChar((char)'t',	"116",	"164",	"74",	"01110100",	"",	"Lowercase t"),
+			new AsciiChar((char)'u',	"117",	"165",	"75",	"01110101",	"",	"Lowercase u"),
+			new AsciiChar((char)'v',	"118",	"166",	"76",	"01110110",	"",	"Lowercase v"),
+			new AsciiChar((char)'w',	"119",	"167",	"77",	"01110111",	"",	"Lowercase w"),
+			new AsciiChar((char)'x',	"120",	"170",	"78",	"01111000",	"",	"Lowercase x"),
+			new AsciiChar((char)'y',	"121",	"171",	"79",	"01111001",	"",	"Lowercase y"),
+			new AsciiChar((char)'z',	"122",	"172",	"7A",	"01111010",	"",	"Lowercase z"),
+			new AsciiChar((char)'{',	"123",	"173",	"7B",	"01111011",	"LEFT_BRACE",	"Opening brace"),
+			new AsciiChar((char)'|',	"124",	"174",	"7C",	"01111100",	"BAR",	"Vertical bar"),
+			new AsciiChar((char)'}',	"125",	"175",	"7D",	"01111101",	"RIGHT_BRACE",	"Closing brace"),
+			new AsciiChar((char)'~',	"126",	"176",	"7E",	"01111110",	"TILDE",	"Equivalency sign - tilde"),
+			new AsciiChar((char)0x7F,	"127",	"177",	"7F",	"01111111",	null,	"Delete"),
+	};
+}

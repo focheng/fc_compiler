@@ -4,19 +4,36 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Token kind.
+ *  id      - unique id. Its type can be integer or string.
+ *  name    -
+ *  literal - the original string literal.
+ *  parent  - parent kind. e.g. LITERAL is parent kind of STRING LITERAL.
+ *  description - a detailed description.
+ *
+ *      id                 |   name         |  literal   |  parent | description
+ *  -----------------------|----------------|------------|---------|------
+ *    1  "<EOF>"           |   EOF          |     N/A    |         |
+ *    35 "while"           |   WHILE        |   'while'  |         |
+ *    41 "equal"           |   EQUAL        |     '='    |         |
+ *    51 "LITERAL"         | LITERAL        |     N/A    |         |
+ *    52 "STRING_LITERAL"  | STRING_LITERAL |     N/A    | LITERAL |
+ *
  * @author FC
  */
 public interface TokenKind {
+	public boolean is(String kindName);
+
 	// == EOF, Error ==
-	String EOF = "EOF";
-	String ERROR = "ERROR";
+	String EOF = "<EOF>";
+	String ERROR = "<ERROR>";
 
 
 	// == white spaces ==
-	String WHITE_SPACES = "WHITE_SPACES";
+	String WHITE_SPACES = "<WHITE_SPACES>";
 
 	// -- line terminator --
-	String LINE_TERMINATOR = "LINE_TERMINATOR";
+	String LINE_TERMINATOR = "<LINE_TERMINATOR>";
 
 	default boolean isWhiteSpaces(String tokenKind) {
 		return tokenKind == WHITE_SPACES || tokenKind == LINE_TERMINATOR;
@@ -27,9 +44,9 @@ public interface TokenKind {
 
 
 	// == comments ==
-	String BLOCK_COMMENT = "BLOCK_COMMENT";
-	String LINE_COMMENT = "LINE_COMMENT";
-	String DOC_COMMENT = "DOC_COMMENT";
+	String BLOCK_COMMENT = "<BLOCK_COMMENT>";
+	String LINE_COMMENT = "<LINE_COMMENT>";
+	String DOC_COMMENT = "<DOC_COMMENT>";
 
 	default boolean isComment(String tokenKind) {
 		return tokenKind == BLOCK_COMMENT
@@ -39,31 +56,31 @@ public interface TokenKind {
 
 
 	// == literals ==
-	String STRING_LITERAL = "STRING_LITERAL";
-	String CHAR_LITERAL = "CHAR_LITERAL";
-	String BOOLEAN_LITERAL = "BOOLEAN_LITERAL";
-	String NUMBER_LITERAL = "NUMBER_LITERAL";
-	String INT_LITERAL = "INT_LITERAL";
-	String LONG_LITERAL = "LONG_LITERAL";
-	String FLOAT_LITERAL = "FLOAT_LITERAL";
-	String DOUBLE_LITERAL = "DOUBLE_LITERAL";
+	String STRING_LITERAL   = "<STRING_LITERAL>";
+	String CHAR_LITERAL     = "<CHAR_LITERAL>";
+	String BOOLEAN_LITERAL  = "<BOOLEAN_LITERAL>";
+	String NUMBER_LITERAL   = "<NUMBER_LITERAL>";
+	String INT_LITERAL      = "<INT_LITERAL>";
+	String LONG_LITERAL     = "<LONG_LITERAL>";
+	String FLOAT_LITERAL    = "<FLOAT_LITERAL>";
+	String DOUBLE_LITERAL   = "<DOUBLE_LITERAL>";
 
 
-	// == separators (punctuactors) are formed from ASCII characters ==
-	String DOT = ".";
-	String COMMA = ",";
-	String SEMICOLON = ";";
-	String COLON = ":";
-	String LEFT_PAREN = "(";
-	String RIGHT_PAREN = ")";
-	String LEFT_BRACKET = "[";
-	String RIGHT_BRACKET = "]";
-	String LEFT_BRACE = "{";
-	String RIGHT_BRACE = "}";
-	String QUESTION = "?";
-	String AT = "@";
-	String SINGLE_QUOTE = "SINGLE_QUOTE";
-	String DOUBLE_QUOTE = "DOUBLE_QUOTE";
+	// == separators (punctuators) are formed from ASCII characters ==
+	String DOT              = ".";
+	String COMMA            = ",";
+	String SEMICOLON        = ";";
+	String COLON            = ":";
+	String LEFT_PAREN       = "(";
+	String RIGHT_PAREN      = ")";
+	String LEFT_BRACKET     = "[";
+	String RIGHT_BRACKET    = "]";
+	String LEFT_BRACE       = "{";
+	String RIGHT_BRACE      = "}";
+	String QUESTION         = "?";
+	String AT               = "@";
+	String SINGLE_QUOTE     = "'";
+	String DOUBLE_QUOTE     = "\"";
 
 
 	// == operators are formed from ASCII characters ==
@@ -102,9 +119,12 @@ public interface TokenKind {
 	String CARET                    = "^";
 	String CARET_EQUAL              = "^=";
 
+	// == special punctuator ==
+	String ELLIPSIS                 = "...";   // "..." in java.
+
 
 	// == identifier ==
-	String IDENTIFIER = "IDENTIFIER";
+	String IDENTIFIER = "<IDENTIFIER>";
 
 
 	// == keywords are formed from ASCII characters ==
@@ -120,6 +140,19 @@ public interface TokenKind {
 	// -- contextual keywords --
 
 
-	// == special ==
-	String ELLIPSIS             = "...";   // "..." in java.
+	public static interface Eof extends TokenKind {}
+	public static interface Error extends TokenKind {}
+	public static interface WhiteSpace extends TokenKind {}
+	public static interface Newline extends TokenKind {}
+	public static interface Comment extends TokenKind {}
+	public static interface Separator extends TokenKind {}
+	public static interface Operator extends TokenKind {}
+	public static interface Literal extends TokenKind {}
+	public static interface NumberLiteral extends Literal {}
+	public static interface StringLiteral extends Literal {}
+	public static interface Identifier extends TokenKind {}
+	public static interface Keyword extends TokenKind {}
+	public static interface ReservedKeyword extends Keyword {}
+	public static interface ContextualKeyword extends TokenKind {}
+
 }

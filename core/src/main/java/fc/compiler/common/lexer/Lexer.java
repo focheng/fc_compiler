@@ -7,5 +7,5 @@ import fc.compiler.common.token.Token;
  */
 @FunctionalInterface
 public interface Lexer {
-	public Token scan(CodeReader reader);
+	public Token scan(CodeReaderBase reader);
 }

@@ -33,7 +33,7 @@ public class CobolLexer extends LexerBase {
 		initReservedKeywords();
 	}
 
-	public Token scan(CodeReader reader) {
+	public Token scan(CodeReaderBase reader) {
 		reader.onStartToken();
 		if (reader.isEndOfLine()) {
 			previousTokenLineTerminator = true;
@@ -140,19 +140,19 @@ public class CobolLexer extends LexerBase {
 	 *      COPY copybook-name REPLACING ==:WS:== BY ==WS1==.
 	 */
 
-	public static Token onComma(CodeReader reader) {
-		return scanSeparator(reader, ',', SEPARATOR_COMMA);
+	public static Token onComma(CodeReaderBase reader) {
+		return scanSeparator(reader, ',', COMMA);
 	}
 
-	public static Token onSemicolon(CodeReader reader) {
-		return scanSeparator(reader, ',', SEPARATOR_SEMICOLON);
+	public static Token onSemicolon(CodeReaderBase reader) {
+		return scanSeparator(reader, ';', SEMICOLON);
 	}
 
-	public static Token onPeriod(CodeReader reader) {
-		return scanSeparator(reader, '.', SEPARATOR_PERIOD);
+	public static Token onPeriod(CodeReaderBase reader) {
+		return scanSeparator(reader, '.', DOT);
 	}
 
-	public static Token scanSeparator(CodeReader reader, char leadingChar, String tokenKind) {
+	public static Token scanSeparator(CodeReaderBase reader, char leadingChar, String tokenKind) {
 		reader.accept(leadingChar);
 		if (Character.isWhitespace(reader.ch) || reader.ch == Constants.EOF) {
 			reader.nextChar();
@@ -163,7 +163,7 @@ public class CobolLexer extends LexerBase {
 		}
 	}
 
-	private static Token onEqual(CodeReader reader) {
+	private static Token onEqual(CodeReaderBase reader) {
 		reader.accept('=');
 		if (reader.accept('=')) {
 			/** The == pseudo-text delimiter */
@@ -173,7 +173,7 @@ public class CobolLexer extends LexerBase {
 		}
 	}
 
-	private static Token onGT(CodeReader reader) {
+	private static Token onGT(CodeReaderBase reader) {
 		reader.accept('>');
 		if (reader.accept('=')) {
 			return new Token(GT_EQUAL, reader.position).lexeme(reader.lexeme());
@@ -182,7 +182,7 @@ public class CobolLexer extends LexerBase {
 		}
 	}
 
-	private static Token onLT(CodeReader reader) {
+	private static Token onLT(CodeReaderBase reader) {
 		reader.accept('<');
 		if (reader.accept('=')) {
 			return new Token(LT_EQUAL, reader.position).lexeme(reader.lexeme());
@@ -210,7 +210,7 @@ public class CobolLexer extends LexerBase {
 	 * - Floating-point numbers. e.g. +9.999E-3
 	 *      [+/-] mantissa E [+/-] exponent
 	 */
-	public static Token onSingleQuote(CodeReader reader) {
+	public static Token onSingleQuote(CodeReaderBase reader) {
 		return scanStringLiteral(reader, '\'');
 	}
 
@@ -233,7 +233,7 @@ public class CobolLexer extends LexerBase {
 	 *      - Figurative Constants.
 	 *      - Special Character Words.
 	 */
-	public static Token scanIdentifier(CodeReader reader) {
+	public static Token scanIdentifier(CodeReaderBase reader) {
 		char prev = reader.ch;
 		if (!reader.accept(CobolLexer::isLetterOrDigit)) {
 			return lexError(reader, "invalid identifier start character");
@@ -255,7 +255,7 @@ public class CobolLexer extends LexerBase {
 		return token;
 	}
 
-	private static boolean optionalIdDivisionParagraph(CodeReader reader, Token token) {
+	private static boolean optionalIdDivisionParagraph(CodeReaderBase reader, Token token) {
 		if (token.kind() == AUTHOR
 				|| token.kind() == INSTALLATION
 				|| token.kind() == DATE_WRITTEN
@@ -269,7 +269,7 @@ public class CobolLexer extends LexerBase {
 		return false;
 	}
 
-	private static String optionalCommentEntry(CodeReader reader) {
+	private static String optionalCommentEntry(CodeReaderBase reader) {
 		while (true) {
 			reader.skipToEndOfLine();
 			reader.acceptLineTerminator();
@@ -281,7 +281,7 @@ public class CobolLexer extends LexerBase {
 		return reader.lexeme();
 	}
 
-	public static Token onDigit(CodeReader reader) {
+	public static Token onDigit(CodeReaderBase reader) {
 		reader.acceptDigits();
 		if (reader.accept('.')) {
 			reader.acceptDigits();

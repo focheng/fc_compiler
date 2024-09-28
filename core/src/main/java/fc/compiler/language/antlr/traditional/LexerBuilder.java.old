@@ -1,0 +1,181 @@
+package fc.compiler.language.antlr.traditional;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
+import java.util.Arrays;
+import java.util.Objects;
+
+/**
+ * Lexer Class Builder.
+ *
+ * Grammar rule is token kind : lexeme =>  CharNode => Lexer scanner
+ * v      PLUS:      '+'
+ * v      PLUS_PLUS: '++'
+ * v      PLUS_EQ:   '+='
+ * CharNodes are
+ * v     '+', PLUS, children[
+ * v         '+', PLUS_PLUS
+ * v         '=', PLUS_EQ
+ * v        ]
+ * Scanning codes are
+ * v     case '+': nextChar;
+ * v        switch (ch) {
+ * v			case '+':	nextChar();	return PLUS_PLUS.nextToken();
+ * v			case '=':	nextChar();	return PLUS_EQ.nextToken();
+ * v			default:	nextChar();	return PLUS.newToken();
+ * v		}
+ *
+ * @author FC
+ */
+@Accessors(fluent = true, chain = true)
+public class LexerBuilder extends ClassBuilderBase {
+
+	@Getter @Setter private CharNode[] rootCharNodes;
+
+	public String toCode() {
+		String s = sb.toString();
+		sb.setLength(0);
+		buildFileHeader();
+		buildScanToken();
+		sb.append(s);
+		buildFileFooter();
+		return sb.toString();
+	}
+
+	public void buildScanToken() {
+		add1(STR."public \{lang}Token scanToken() {");
+			add2("resetTokenContext();");
+			add2("switch (ch) {");
+				add3("case EOF_CHAR:                  return EOF.newToken();");
+				add3("case '\\r':");
+				add3("case '\\n':                      return scanNewLine();");
+				add3("case ' ':");
+				add3("case '\\t':");
+				add3("case VT:");
+				add3("case FF:                        return scanNewLine();");
+				buildCases(rootCharNodes);
+				add3("default:");
+					add4("if (isIdentifierStart(ch))");
+						add5("return scanIdentifier();");
+					add4("return lexError(\"scanToken()\");");
+			add2("}");
+		add1("}");
+	}
+
+	protected void buildCases(CharNode[] nodes) {
+		increaseIndent();
+		Arrays.stream(nodes).filter(Objects::nonNull).forEach(node -> {
+			switch (node) {
+				case SingleCharNode s:   buildScanSingleCharToken(s.character, s.tokenKind);     break;
+				case TwoCharNode    t:   buildScanTwoCharToken(t.character,  t.tokenKind,
+											t.optional2ndChar, t.optional2ndTokenKind); break;
+				default:
+					buildCase(node.character(), node.tokenKind(), node.children());
+			}
+		});
+		decreaseIndent();
+	}
+
+	private void buildScanSingleCharToken(char ch, String kind) {
+		add2(STR."case '\{ch}':\tnextChar();\treturn \{kind}.nextToken();");
+	}
+
+	private void buildScanTwoCharToken(char ch, String kind, char ch2, String kind2) {
+		add2(STR."case '\{ch}':\tnextChar();\treturn (optionalChar('\{ch2}') ? \{kind2} ? \{kind}).nextToken();");
+	}
+
+	private void buildCase(char ch, String kind, CharNode[] children) {
+		if (children == null || children.length == 0) {
+			buildScanSingleCharToken(ch, kind);
+		} else if (children.length == 1) {
+			CharNode child = children[0];
+			if (child.children() == null || child.children().length == 0) {
+				buildScanTwoCharToken(ch, kind, child.character(), child.tokenKind());
+			} else {
+				// TODO:
+			}
+		} else {
+			add2(STR."case '\{ch}': nextChar(); ");
+				add3("switch (ch) {");
+					increaseIndent();
+					buildCases(children);
+					decreaseIndent();
+					if (kind != null)
+						add4(STR."default:\tnextChar();\treturn \{kind}.newToken();");
+					else
+						add4("default:\treturn lexError(\"scanToken()\");");
+				add3("}");
+		}
+	}
+
+	public void buildFileHeader() {
+		add(STR."package \{packageName};");
+		addEmptyLine();
+		add(STR."import TODO;");
+		addEmptyLine();
+		add(STR."public class \{lang}Parser {");
+	}
+
+	public void buildFileFooter() {
+		add("}");
+	}
+
+	public static interface CharNode {
+		char character();
+		String tokenKind();
+		CharNode[] children();
+
+		static CharNode of(char character, String tokenKind) {
+			return new SingleCharNode(character, tokenKind);
+		}
+
+		static CharNode of(char character, String tokenKind,
+		                   CharNode[] children) {
+			return new DefaultCharNode(character, tokenKind).children(children);
+		}
+
+		static CharNode of(char character,  String tokenKind,
+		                   char optional2ndChar, String optional2ndTokenKind) {
+			return new TwoCharNode(character, tokenKind, optional2ndChar, optional2ndTokenKind);
+		}
+	}
+
+	@Getter @Setter @Accessors(fluent = true, chain = true)
+	@NoArgsConstructor @AllArgsConstructor
+	public static class DefaultCharNode implements CharNode {
+		char character;
+		String tokenKind;
+		CharNode[] children;
+
+		public DefaultCharNode(char character, String tokenKind) {
+			this.character = character;
+			this.tokenKind = tokenKind;
+		}
+	}
+
+	@Getter @Setter @Accessors(fluent = true, chain = true)
+	@NoArgsConstructor @AllArgsConstructor
+	public static class SingleCharNode implements CharNode {
+		char character;
+		String tokenKind;
+		public CharNode[] children() { return null; }
+	}
+
+	@Getter @Setter @Accessors(fluent = true, chain = true)
+	@NoArgsConstructor @AllArgsConstructor
+	public static class TwoCharNode implements CharNode {
+		char character;
+		String tokenKind;
+		char optional2ndChar;
+		String optional2ndTokenKind;
+
+		public CharNode[] children() {
+			return new CharNode[] { new SingleCharNode(optional2ndChar, optional2ndTokenKind) };
+		}
+	}
+
+}

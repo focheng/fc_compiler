@@ -13,5 +13,5 @@ import java.util.List;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class FileControlParagraph extends StatementBase {
-	List<FileControlEntry> fileControlEntries;
+	List<FileControlEntry> fileControlEntryList;
 }

@@ -18,7 +18,7 @@ public class Identifier extends ExpressionBase {
 
 	// Identifier pool avoid creating duplicate objects.
 	public static Map<String, Identifier> pool = new HashMap<>();
-	public static Identifier get(String id) {
+	public static Identifier of(String id) {
 		if (!pool.containsKey(id)) {
 			pool.put(id, new Identifier().id(id));
 		}

@@ -14,14 +14,14 @@ import java.util.List;
  */
 public class LexerBaseTest {
 	protected Token codeToToken(String code, Lexer lexer) {
-		CodeReader reader = new CodeReader(code.toCharArray());
+		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		reader.onStartToken();
 		return lexer.scan(reader);
 	}
 
 	protected List<Token> codeToTokens(String code, Lexer mainLexer) {
 		List<Token> tokenList = new ArrayList<>();
-		CodeReader reader = new CodeReader(code.toCharArray());
+		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		Token t = null;
 		do {
 			t = mainLexer.scan(reader);

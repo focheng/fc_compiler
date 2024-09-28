@@ -12,6 +12,6 @@ import lombok.experimental.Accessors;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class ConfigurationSection extends StatementBase {
-	Identifier sourceComputerName;
-	Identifier objectComputerName;
+	Identifier sourceComputerParagraph;
+	Identifier objectComputerParagraph;
 }

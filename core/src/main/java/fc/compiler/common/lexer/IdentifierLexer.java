@@ -17,11 +17,11 @@ import static fc.compiler.common.token.TokenKind.IDENTIFIER;
 public class IdentifierLexer extends LexerBase {
 	private Predicate<Character> isIdentifierStart = IdentifierLexer::isIdentifierStartDefault;
 	private Predicate<Character> isIdentifierPart  = IdentifierLexer::isIdentifierPartDefault;
-	private boolean caseSensitive = true;
+	protected boolean caseSensitive = true;
 
 
 	@Override
-	public Token scan(CodeReader reader) {
+	public Token scan(CodeReaderBase reader) {
 		if (!reader.accept(isIdentifierStart)) {
 			return lexError(reader, "Invalid identifier starting character.");
 		}

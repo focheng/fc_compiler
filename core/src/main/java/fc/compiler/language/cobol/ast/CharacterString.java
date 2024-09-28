@@ -15,7 +15,7 @@ public class CharacterString implements AstNode {
 	private String format;
 
 	@Override
-	public <R, P> R accept(AstNodeVisitor visitor, P p) {
-		return visitor.visitNode(this, p);
+	public <R, P> R accept(AstNodeVisitor<R, AstNode, P> visitor, P p) {
+		return visitor.visit(this, p);
 	}
 }

@@ -1,4 +1,4 @@
-package fc.compiler.language.antlr;
+package fc.compiler.language.antlr.modern;
 
 import fc.compiler.common.token.TokenKind;
 

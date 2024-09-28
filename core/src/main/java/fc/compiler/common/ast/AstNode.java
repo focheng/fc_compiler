@@ -16,5 +16,5 @@ public interface AstNode {
 	 * @param <R>   generic result type
 	 * @param <P>   generic parameter type
 	 */
-	<R, P> R accept(AstNodeVisitor visitor, P p);
+	<R, P> R accept(AstNodeVisitor<R, AstNode, P> visitor, P p);
 }

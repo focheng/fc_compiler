@@ -15,5 +15,5 @@ import java.util.List;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class WorkingStorageSection extends StatementBase {
-	List<DataDescriptionEntry> variableDeclarations = new ArrayList<>();
+	List<DataDescriptionEntry> dataDescriptionEntryList;
 }

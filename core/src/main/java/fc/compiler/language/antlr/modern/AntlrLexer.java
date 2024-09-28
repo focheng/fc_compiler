@@ -1,11 +1,10 @@
-package fc.compiler.language.antlr;
+package fc.compiler.language.antlr.modern;
 
-import fc.compiler.common.lexer.CodeReader;
+import fc.compiler.common.lexer.CodeReaderBase;
 import fc.compiler.common.lexer.IdentifierLexer;
 import fc.compiler.common.lexer.LexerBase;
 import fc.compiler.common.lexer.LexerMapper;
 import fc.compiler.common.token.Token;
-import fc.compiler.language.cobol.CobolTokenKind;
 import fc.compiler.language.java.JavaLexer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,6 +16,15 @@ import static fc.compiler.common.lexer.Constants.EOF;
 import static fc.compiler.common.token.TokenKind.*;
 
 /**
+ * Antlr Extended Lexer.
+ * - The name of lexer rule must be all UPPER_CASE.
+ * - Lexer rule can be explicitly defined in .g4 file.
+ * - If lexer rule is not explicitly defined,
+ *   1. firstly,  try to match the built-in lexer rule. e.g. NEWLINE : '\r'? '\n' -> channel(HIDDEN) ;
+ *   2. secondly, try to convert following naming convention.
+ *                  e.g. KEYWORD match "keyword".
+ *                  e.g. END_IF matches "end-if";
+ *   3. report undefined error.
  * @author FC
  */
 @Slf4j
@@ -79,7 +87,7 @@ public class AntlrLexer extends LexerBase {
 		}
 	}
 
-	public static Token onSlash(CodeReader reader) {
+	public static Token onSlash(CodeReaderBase reader) {
 		reader.accept('/');
 		if (reader.accept('/')) {           // "//" for line comment
 			return scanLineComment(reader);
@@ -90,7 +98,13 @@ public class AntlrLexer extends LexerBase {
 		}
 	}
 
-	public static Token onSingleQuote(CodeReader reader) {
-		return scanStringLiteral(reader, '\'');
+	public static Token onSingleQuote(CodeReaderBase reader) {
+		Token token = scanStringLiteral(reader, '\'');
+//
+//		String newKind = mapLiteralToTokenKind.get(token.attribute("value"));
+//		if (newKind != null) {
+//			token.kind(newKind);
+//		}
+		return token;
 	}
 }

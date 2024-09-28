@@ -2,10 +2,8 @@ package fc.compiler.language.cobol.ast;
 
 import fc.compiler.common.ast.CompilationUnit;
 import fc.compiler.common.ast.StatementBase;
-import fc.compiler.language.cobol.ast.division.DataDivision;
-import fc.compiler.language.cobol.ast.division.EnvironmentDivision;
-import fc.compiler.language.cobol.ast.division.IdDivision;
-import fc.compiler.language.cobol.ast.division.ProcedureDivision;
+import fc.compiler.common.ast.expression.Identifier;
+import fc.compiler.language.cobol.ast.division.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -22,5 +20,6 @@ public class CobolProgram extends StatementBase {
 	EnvironmentDivision environmentDivision;
 	DataDivision dataDivision;
 	ProcedureDivision procedureDivision;
-	List<CobolProgram> nestedPrograms;
+	List<CobolProgram> cobolProgramList;   // nested programs
+	Identifier endProgram;
 }

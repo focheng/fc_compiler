@@ -14,8 +14,8 @@ public class ExpressionBase implements Expression {
 	protected Expression type;
 
 	@Override
-	public <R, P> R accept(ExpressionVisitor visitor, P p) {
-		visitor.visitExpression(this, p);
+	public <R, P> R accept(AstNodeVisitor<R, AstNode, P> visitor, P p) {
+		visitor.visit(this, p);
 		return null;
 	}
 }

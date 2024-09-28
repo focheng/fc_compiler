@@ -2,7 +2,7 @@ package fc.compiler.language.antlr;
 
 import fc.compiler.common.lexer.LexerBaseTest;
 import fc.compiler.common.token.Token;
-import fc.compiler.language.java.JavaLexer;
+import fc.compiler.language.antlr.modern.AntlrLexer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

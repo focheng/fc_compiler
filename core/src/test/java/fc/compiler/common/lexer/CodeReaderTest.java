@@ -11,8 +11,8 @@ class CodeReaderTest {
 
 	@Test
 	void hasNext() {
-		assertEquals(false, new CodeReader("".toCharArray()).hasNext());
-		assertEquals(false, new CodeReader("a".toCharArray()).hasNext());
-		assertEquals(true, new CodeReader("ab".toCharArray()).hasNext());
+		assertEquals(false, new CodeReaderBase("".toCharArray()).hasNext());
+		assertEquals(false, new CodeReaderBase("a".toCharArray()).hasNext());
+		assertEquals(true, new CodeReaderBase("ab".toCharArray()).hasNext());
 	}
 }

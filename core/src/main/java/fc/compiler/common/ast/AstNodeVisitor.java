@@ -1,17 +1,17 @@
 package fc.compiler.common.ast;
 
 /**
+ * @param <R>   generic result type. Use Void class if no need.
+ * @param <P>   generic parameter type. Use Void class if no need.
  * @author FC
  */
 @FunctionalInterface
-public interface AstNodeVisitor {
+public interface AstNodeVisitor<R, T extends AstNode, P> {
 	/**
 	 * Visitor Design Pattern.
-	 * @param that  the object to visit
+	 * @param node  the object to visit
 	 * @param p     parameter object of P
-	 * @return
-	 * @param <R>   generic result type
-	 * @param <P>   generic parameter type
+	 * @return the result if any.
 	 */
-	<R, P> R visitNode(AstNode that, P p);
+	R visit(T node, P p);
 }

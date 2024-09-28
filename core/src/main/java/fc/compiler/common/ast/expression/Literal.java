@@ -11,5 +11,5 @@ import lombok.experimental.Accessors;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class Literal<T> extends ExpressionBase {
-	T value;
+	protected T value;
 }

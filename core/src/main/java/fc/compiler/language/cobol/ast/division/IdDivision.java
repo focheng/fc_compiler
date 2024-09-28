@@ -8,6 +8,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,8 +16,9 @@ import java.util.Map;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class IdDivision extends StatementBase {
-    Identifier programName;
-    Map<String, String> attributes = new HashMap<>();
+    Identifier programIdParagraph;  // programName;
+    List<IdDivisionOptionalParagraph> idDivisionOptionalParagraphList;
+//    Map<String, String> attributes = new HashMap<>();
 //    String author;
 //    String installation;
 //    String dateWritten;

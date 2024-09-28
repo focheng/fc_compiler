@@ -14,8 +14,14 @@ public class StatementBase implements Statement {
 	Statement parent;       // assigned and used in ast visiting.
 
 	@Override
-	public <R, P> R accept(StatementVisitor visitor, P p) {
-		visitor.visitStatement(this, p);
+	public <R, P> R accept(AstNodeVisitor<R, AstNode, P> visitor, P p) {
+		visitor.visit(this, p);
 		return null;
 	}
+
+//	@Override
+//	public <R, P> R accept(StatementVisitor visitor, P p) {
+//		visitor.visitStatement(this, p);
+//		return null;
+//	}
 }

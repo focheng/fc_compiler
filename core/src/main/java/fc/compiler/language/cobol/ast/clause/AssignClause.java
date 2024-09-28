@@ -12,5 +12,5 @@ import lombok.experimental.Accessors;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString
 public class AssignClause extends StatementBase {
-	Expression assignee;
+	Expression assignmentName;
 }
