@@ -24,8 +24,8 @@ public class FcgParser {
 
 	public AntlrCompilationUnit parseCompilationUnit() {
 		AntlrCompilationUnit cu = new AntlrCompilationUnit();
-		if (token.kind == LEXER || token.kind == PARSER) {
-			cu.isLexer(token.kind == LEXER);
+		if (token.kind() == LEXER || token.kind() == PARSER) {
+			cu.isLexer(token.kind() == LEXER);
 			nextToken();
 		}
 
@@ -40,7 +40,7 @@ public class FcgParser {
 
 	private List<Rule> parseRules() {
 		List<Rule> list = new ArrayList<>();
-		while (token.kind != EOF) {
+		while (token.kind() != EOF) {
 			Rule rule = parseRule();
 			list.add(rule);
 		}
@@ -79,14 +79,14 @@ public class FcgParser {
 	}
 
 	protected Expression parseElement() {
-		Expression expr = switch (token.kind) {
+		Expression expr = switch (token.kind()) {
 			case LEFT_PAREN     -> parseParenExpression();
 			case STRING_LITERAL -> parseStringLiteral();
 			case IDENTIFIER     -> parseIdentifier();
 			default             -> null;
 		};
 
-		if (token.kind.isAnyOf(QUESTION, STAR, PLUS)) {
+		if (token.kind().isAnyOf(QUESTION, STAR, PLUS)) {
 			QuantifiedExpression qe = new QuantifiedExpression().quantifierType(token.lexeme());
 			nextToken();
 			return qe.expression(expr);

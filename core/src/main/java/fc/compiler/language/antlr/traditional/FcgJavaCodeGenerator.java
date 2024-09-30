@@ -26,13 +26,12 @@ public class FcgJavaCodeGenerator implements AstNodeVisitor<Void, AstNode, Objec
 	private String packageName;
 
 	// -- variables from antlr file --
-	private String languageName;
 	private boolean caseSensitive;
 
 	// -- specific builders --
 	private ParserBuilder pb = new ParserBuilder();
 	private TokenKindBuilder kb = new TokenKindBuilder();
-	// LexerBuilder lb;
+	private LexerBuilder lb = new LexerBuilder();
 	// VisitorBuilder vb;
 	// AstNodeClassBuilder cb;
 	private UniqueTokenKindFinder finder = new UniqueTokenKindFinder();
@@ -41,10 +40,10 @@ public class FcgJavaCodeGenerator implements AstNodeVisitor<Void, AstNode, Objec
 	private Map<String, Rule> rules = new HashMap<>();
 
 	public void visit(AntlrCompilationUnit cu) {
-		this.languageName = cu.name().id();
-		pb.buildFileHeader("foo", languageName);
+		pb.packageName("foo");
+		pb.lang(cu.name().id());
 		cu.rules().forEach(rule -> rules.put(rule.name().id(), rule));
-		finder.kb(kb).rules(rules);
+		finder.tokenKindBuilder(kb).rules(rules);
 		cu.rules().forEach(this::visit);
 	}
 

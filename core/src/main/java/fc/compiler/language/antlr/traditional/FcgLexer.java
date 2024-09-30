@@ -1,33 +1,21 @@
 package fc.compiler.language.antlr.traditional;
 
+import fc.compiler.common.lexer.CodeReaderBase;
+import fc.compiler.common.lexer.Lexer;
+import fc.compiler.common.lexer.LexerBase;
+
 /**
  * Lexer for Antlr-like xml.
  * @author FC
  */
-public class FcgLexer {
-	protected static final char EOF_CHAR   = 0x1A;   // control-z, End of File.
-	protected static final char SPACE      = ' ';
-	protected static final char TAB        = '\t';
-	protected static final char VT         = 0x0B;
-	protected static final char FF         = 0x0C;
-	protected static final char CR         = '\r';
-	protected static final char LF         = '\n';
+public class FcgLexer extends LexerBase<FcgTokenKind, FcgToken> {
 
-	protected char[] code;
-	protected char   ch;
-	protected int    bp = -1;
-	protected int    spLexeme = 0;
-	protected int    lineNo = 1;
-	protected int    lineStartPosition;
-
-	public FcgLexer(String text) {
-		this.code = toCharArrayPlusEof(text);
-
-		nextChar();
+	public FcgLexer(String code) {
+		super(code);
 	}
 
 	public FcgToken scanToken() {
-		resetTokenContext();
+		onStartToken();
 		switch (ch) {
 			case EOF_CHAR:                  return FcgTokenKind.EOF.newToken();
 			case CR:
@@ -62,7 +50,7 @@ public class FcgLexer {
 		}
 	}
 
-	private FcgToken scanComment() {
+	protected FcgToken scanComment() {
 		acceptChar('/');
 		if (ch == '/') {
 			return scanLineComment();
@@ -72,24 +60,24 @@ public class FcgLexer {
 		return lexError("scanComments");
 	}
 
-	private FcgToken scanLineComment() {
+	protected FcgToken scanLineComment() {
 		while (ch != EOF_CHAR && ch != CR && ch != LF) {
 			nextChar();
 		}
-		FcgToken token = FcgTokenKind.LINE_COMMENT.newToken(getLexeme());
+		FcgToken token = FcgTokenKind.LINE_COMMENT.newToken(lexeme());
 		if (ch != EOF_CHAR)
 			scanNewLine();
 		return token;
 	}
 
-	private FcgToken scanBlockComment() {
+	protected FcgToken scanBlockComment() {
 		while (ch != EOF_CHAR) {
 			switch (ch) {
 				case CR:
 				case LF:    acceptLineTerminator();
 				case '*':   nextChar();
 					if (optionalChar('/')) {
-						return FcgTokenKind.BLOCK_COMMENT.newToken(getLexeme());
+						return FcgTokenKind.BLOCK_COMMENT.newToken(lexeme());
 					}
 				default:    nextChar();
 			}
@@ -97,7 +85,7 @@ public class FcgLexer {
 		return lexError("no enclosed block comment");
 	}
 
-	private FcgToken scanStringLiteral() {
+	protected FcgToken scanStringLiteral() {
 		acceptChar('\'');
 		while (ch != EOF_CHAR) {
 			if (ch == CR || ch == LF) {
@@ -109,20 +97,24 @@ public class FcgLexer {
 			}
 			nextChar();
 		}
-		return FcgTokenKind.STRING_LITERAL.newToken(getStringLiteralLexeme());
+		return FcgTokenKind.STRING_LITERAL.newToken(stringLiteralLexeme());
 	}
 
-	private boolean isIdentifierStart() {
-		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z');
+	protected boolean isIdentifierStart() {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_';
 	}
 
-	private FcgToken scanIdentifier() {
+	protected boolean isIdentifierRest() {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
+				|| ('0' <= ch && ch <= '9');
+	}
+
+	protected FcgToken scanIdentifier() {
 		do {
 			nextChar();
-		} while (('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z')
-				|| ('0' <= ch && ch <= '9') || ch == '_');
+		} while (isIdentifierRest());
 
-		String lexeme = getLexeme();
+		String lexeme = lexeme();
 		FcgTokenKind kind = FcgTokenKind.findKeyword(lexeme);
 		if (kind != null) {
 			return kind.newToken(lexeme);
@@ -131,137 +123,40 @@ public class FcgLexer {
 		return FcgTokenKind.IDENTIFIER.newToken(lexeme);
 	}
 
-	private boolean isNumberStart() {
+	protected boolean isNumberStart() {
 		return Character.isDigit(ch);
 	}
 
-	private FcgToken scanNumber() {
+	protected boolean isNumberRest() {
+		return Character.isDigit(ch);
+	}
+
+	protected FcgToken scanNumber() {
 		do {
 			nextChar();
-		} while (isNumberStart());
-		return FcgTokenKind.IDENTIFIER.newToken(getLexeme());
+		} while (isNumberRest());
+		return FcgTokenKind.NUMBER_LITERAL.newToken(lexeme());
 	}
 
-	private boolean isWhiteSpace() {
-		return ch == SPACE || ch == TAB || ch == FF || ch == VT;
-	}
-
-	private FcgToken scanWhiteSpaces() {
+	protected FcgToken scanWhiteSpaces() {
 		do {
 			nextChar();
 		} while (isWhiteSpace());
-		return FcgTokenKind.WHITE_SPACES.newToken(getLexeme());
+		return FcgTokenKind.WHITE_SPACES.newToken(lexeme());
 	}
 
-	private FcgToken scanNewLine() {
+	protected FcgToken scanNewLine() {
 		optionalChar(CR);
 		optionalChar(LF);
 		lineNo++;
 		lineStartPosition = bp;
-		return FcgTokenKind.NEW_LINE.newToken(getLexeme());
+		return FcgTokenKind.NEW_LINE.newToken(lexeme());
 	}
 
-	// -- helper --
-
-	private void resetTokenContext() {
-		spLexeme = bp;
-	}
-
-	private String getLexeme() {
-		return String.copyValueOf(code, spLexeme, bp - spLexeme);
-	}
-
-	private String getStringLiteralLexeme() {
-		return String.copyValueOf(code, spLexeme + 1, bp - spLexeme - 2);
-	}
-
-	private FcgToken lexError(String hint) {
+	protected FcgToken lexError(String hint) {
 		logError(hint);
 		nextChar();
 		return FcgTokenKind.ERROR_TOKEN.newToken();
 	}
 
-	private void logError(String hint) {
-		System.out.println("lex error: unsupported char " + ch + " " + hint);
-	}
-
-	// -- character stream --
-
-	/**
-	 * Read and return the next character.
-	 * @return next character.
-	 */
-	public char nextChar() {
-		++bp;
-		if (bp < code.length) {
-			ch = code[bp];
-		} else {
-			ch = EOF_CHAR;
-		}
-		return ch;
-	}
-
-	private boolean acceptChar(char expected) {
-		boolean accepted = expected == ch;
-		if (accepted)
-			nextChar();
-		else
-			logError(expected + " is expected, but " + ch + " scanned");
-		return accepted;
-	}
-
-	private boolean acceptChar(char... expectedChars) {
-		for (char expected : expectedChars) {
-			if (expected != ch) {
-				logError(expected + " is expected, but " + ch + " scanned");
-				return false;
-			}
-			nextChar();
-		}
-		return true;
-	}
-
-	private boolean acceptChar(String expectedChars) {
-		return acceptChar(expectedChars.toCharArray());
-	}
-
-	private boolean optionalChar(char expected) {
-		boolean accepted = expected == ch;
-		if (accepted)
-			nextChar();
-		return accepted;
-	}
-
-	private boolean optionalChar(char... expectedChars) {
-		for (char expected : expectedChars) {
-			if (expected != ch) {
-				return false;
-			}
-			nextChar();
-		}
-		return true;
-	}
-
-	private boolean optionalChar(String expectedChars) {
-		return optionalChar(expectedChars.toCharArray());
-	}
-
-	public boolean acceptLineTerminator() {
-		boolean hasCR = optionalChar(CR);
-		boolean hasLF = optionalChar(LF);
-		if (hasCR || hasLF) {
-			lineNo++;
-			lineStartPosition = bp;
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	public static char[] toCharArrayPlusEof(String code) {
-		char[] array = new char[code.length() + 1];
-		code.getChars(0, code.length(), array, 0);
-		array[code.length()] = EOF_CHAR;
-		return array;
-	}
 }

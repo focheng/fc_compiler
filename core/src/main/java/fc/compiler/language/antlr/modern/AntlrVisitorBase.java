@@ -1,6 +1,6 @@
 package fc.compiler.language.antlr.modern;
 
-import fc.compiler.common.token.TokenKind;
+import fc.compiler.common.token.StringTokenKind;
 import fc.compiler.language.antlr.ast.*;
 import fc.compiler.language.cobol.CobolTokenKind;
 
@@ -36,7 +36,7 @@ public class AntlrVisitorBase<P> implements AntlrVisitor<P> {
 
 	private void initMapStringLiteral2TokenKind() {
 		try {
-			for (Field field : TokenKind.class.getDeclaredFields()) {
+			for (Field field : StringTokenKind.class.getDeclaredFields()) {
 				if (field.getType().equals(String.class)) {
 					String keyword = (String) field.get(null);
 					mapStringLiteral2TokenKind.put(keyword, field.getName());

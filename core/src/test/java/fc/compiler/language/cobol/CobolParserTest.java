@@ -23,7 +23,7 @@ public class CobolParserTest {
 	protected AstNode codeToAst(String code, ParserHub parser) {
 		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		reader.onStartToken();
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), reader);
+		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), reader);
 //		CobolParser mainParser = new CobolParser();
 		return parser.parse(tokenReader, CobolParser.initRegistry());
 	}
@@ -54,7 +54,7 @@ public class CobolParserTest {
 	}
 
 	private static void doParseCompilationUnit(String code) {
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(code.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(code.toCharArray()));
 		CobolCompilationUnit unit = CobolParser.parseCompilationUnit(tokenReader, CobolParser.initRegistry());
 		CobolProgram program = unit.cobolProgramList().get(0);
 		System.out.println(program.idDivision());
@@ -82,7 +82,7 @@ public class CobolParserTest {
 				"         DISPLAY 'GOT THIRD CLASS'\n" +
 				"  END-IF\n" +
 				"END-IF.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(codeSimpleIf.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeSimpleIf.toCharArray()));
 		IfStatement statement = CobolParser.parseIfStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}
@@ -102,7 +102,7 @@ public class CobolParserTest {
 				" WHEN \"C\" DISPLAY 'Student got SECOND CLASS'\n" +
 				" WHEN OTHER DISPLAY 'Student Failed'\n" +
 				" END-EVALUATE.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexer(), new CodeReaderBase(codeMultiWhens.toCharArray()));
+		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeMultiWhens.toCharArray()));
 		Statement statement = CobolParser.parseEvaluateStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}

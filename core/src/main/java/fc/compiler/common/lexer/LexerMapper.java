@@ -12,11 +12,11 @@ import java.util.Map;
  */
 public class LexerMapper {
 	@Getter @Setter
-	protected Lexer defaultLexer;
-	protected Lexer[] asciiLexers = new Lexer[128];         // for ASCII characters.
-	protected Map<Character, Lexer> extendedLexers = new HashMap<>();  // for Unicode characters.
+	protected LexerWithCodeReader defaultLexer;
+	protected LexerWithCodeReader[] asciiLexers = new LexerWithCodeReader[128];         // for ASCII characters.
+	protected Map<Character, LexerWithCodeReader> extendedLexers = new HashMap<>();  // for Unicode characters.
 
-	public Lexer getLexer(Character ch) {
+	public LexerWithCodeReader getLexer(Character ch) {
 		if (ch < 128) {
 			return asciiLexers[ch];
 		} else {
@@ -24,7 +24,7 @@ public class LexerMapper {
 		}
 	}
 
-	public void mapLexer(Character ch, Lexer lexer) {
+	public void mapLexer(Character ch, LexerWithCodeReader lexer) {
 		if (ch < 128) {
 			asciiLexers[ch] = lexer;
 		} else {

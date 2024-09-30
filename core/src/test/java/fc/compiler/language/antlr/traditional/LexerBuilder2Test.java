@@ -39,7 +39,7 @@ class LexerBuilder2Test {
 
 		LexerBuilder lb = new LexerBuilder();
 		lb.packageName("foo.fox");
-		lb.lang("abc");
+		lb.lang("Abc");
 		lb.rootCharNodes(nodes);
 		System.out.println(lb.toCode());
 	}

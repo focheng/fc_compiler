@@ -10,7 +10,7 @@ import fc.compiler.common.ast.expression.*;
 import fc.compiler.common.ast.statement.ExpressionStatement;
 import fc.compiler.common.ast.statement.ForStatement;
 import fc.compiler.common.ast.statement.IfStatement;
-import fc.compiler.common.token.Token;
+import fc.compiler.common.token.StringToken;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 
-import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.common.token.StringTokenKind.*;
 
 /**
  * Parser base class to be derived for specific language.
@@ -97,7 +97,7 @@ public class ParserBase implements Parser {
 	}
 
 	public static <T extends AstNode> T parseGeneric(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.token();
+		StringToken token = reader.token();
 		Parser<T> parser = registry.get(token.kind());
 		if (parser != null) {
 			T node = parser.parse(reader, registry);
@@ -202,7 +202,7 @@ public class ParserBase implements Parser {
 	};
 
 	public static Expression parseAssignmentExpression(TokenReader reader, ParserRegistry registry) {
-		Token operator = null;
+		StringToken operator = null;
 		Expression lhs = parseTernaryExpression(reader, registry);
 		if (reader.optionalAnyOf(EQUAL)) {
 			Expression rhs = parseAssignmentExpression(reader, registry);
@@ -251,7 +251,7 @@ public class ParserBase implements Parser {
 	}
 
 	public static Expression parsePrefixUnaryExpression(TokenReader reader, ParserRegistry registry) {
-		Token prefix = reader.optionalAnyOfAndReturn(PLUS, MINUS, PLUS_PLUS, MINUS_MINUS, BAR, TILDE, LEFT_PAREN);
+		StringToken prefix = reader.optionalAnyOfAndReturn(PLUS, MINUS, PLUS_PLUS, MINUS_MINUS, BAR, TILDE, LEFT_PAREN);
 		if (prefix != null) {
 			Expression expr = parseUnaryExpression(reader, registry);
 			return new PrefixUnaryExpression().expression(expr).operator(prefix.lexeme());
@@ -261,7 +261,7 @@ public class ParserBase implements Parser {
 
 	public static Expression parsePostfixUnaryExpression(TokenReader reader, ParserRegistry registry, Expression expr) {
 		for (;;) {
-			Token prefix = reader.optionalAnyOfAndReturn(DOT, LEFT_PAREN, LEFT_BRACKET);
+			StringToken prefix = reader.optionalAnyOfAndReturn(DOT, LEFT_PAREN, LEFT_BRACKET);
 			if (prefix != null) {
 				Expression expr2 = parseExpression(reader, registry);
 				expr = new PostfixUnaryExpression().expression(expr2).operator(prefix.lexeme());
@@ -296,7 +296,7 @@ public class ParserBase implements Parser {
 	}
 
 	public static Expression parsePrimaryExpression(TokenReader reader, ParserRegistry registry) {
-		Token t = null;
+		StringToken t = null;
 		Expression expr = null;
 		if (reader.isKind(IDENTIFIER)) {
 			expr = parseIdentifier(reader, registry);
@@ -328,7 +328,7 @@ public class ParserBase implements Parser {
 
 
 	public static Identifier parseIdentifier(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.acceptAnyOfAndReturn(IDENTIFIER);
+		StringToken token = reader.acceptAnyOfAndReturn(IDENTIFIER);
 		if (token == null) {
 			return syntaxError(reader, "failed to parse identifier");
 		}
@@ -337,7 +337,7 @@ public class ParserBase implements Parser {
 	}
 
 	public static Literal parseLiteral(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.acceptAnyOfAndReturn(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL,
+		StringToken token = reader.acceptAnyOfAndReturn(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL,
 				CHAR_LITERAL);
 		if (token.kind() == CHAR_LITERAL || token.kind() == STRING_LITERAL) {
 			String value = token.lexeme().substring(1, token.lexeme().length()-1);

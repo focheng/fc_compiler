@@ -1,17 +1,16 @@
 package fc.compiler.language.antlr.traditional;
 
-import lombok.*;
-import lombok.experimental.Accessors;
+import fc.compiler.common.token.TokenBase;
 
 /**
  * @author FC
  */
-@Data
-@Accessors(fluent = true, chain = true)
-@NoArgsConstructor @AllArgsConstructor
-public class FcgToken {
-	protected FcgTokenKind kind;
-	protected String lexeme;
+public class FcgToken extends TokenBase<FcgTokenKind> {
+
+	public FcgToken(FcgTokenKind kind, String lexeme) {
+		this.kind = kind;
+		this.lexeme = lexeme;
+	}
 
 	@Override
 	public String toString() {

@@ -1,8 +1,8 @@
 package fc.compiler.language.cobol;
 
-import fc.compiler.common.lexer.IdentifierLexer;
-import fc.compiler.common.token.Token;
-import fc.compiler.common.lexer.LexerBaseTest;
+import fc.compiler.common.lexer.IdentifierLexerWithCodeReader;
+import fc.compiler.common.token.StringToken;
+import fc.compiler.common.lexer.LexerWithCodeReaderBaseTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +13,11 @@ import java.util.Map;
 /**
  * @author FC
  */
-class CobolLexerTest extends LexerBaseTest {
+class CobolLexerWithCodeReaderTest extends LexerWithCodeReaderBaseTest {
 	@Test
 	void scan() {
 		String code = "  identification division.";
-		List<Token> tokenList = codeToTokens(code, new CobolLexer());
+		List<StringToken> tokenList = codeToTokens(code, new CobolLexerWithCodeReader());
 		tokenList.forEach(System.out::println);
 	}
 
@@ -29,7 +29,7 @@ class CobolLexerTest extends LexerBaseTest {
 		cases.put("01a",    "Token(IDENTIFIER, '01', (1, 1))");
 		for (String code : cases.keySet()) {
 			Assertions.assertEquals(cases.get(code),
-					codeToToken(code, CobolLexer::onDigit).toString());
+					codeToToken(code, CobolLexerWithCodeReader::onDigit).toString());
 		}
 	}
 
@@ -42,20 +42,20 @@ class CobolLexerTest extends LexerBaseTest {
 		cases.put("-v.",    "Token(ERROR, '', (1, 1))");
 		cases.put("v-.",    "Token(ERROR, 'v-', (1, 1))");
 
-		IdentifierLexer idLexer = new IdentifierLexer();
-		idLexer.isIdentifierStart(CobolLexer::isLetterOrDigit);
-		idLexer.isIdentifierPart(CobolLexer::isIdentifierPart);
+		IdentifierLexerWithCodeReader idLexer = new IdentifierLexerWithCodeReader();
+		idLexer.isIdentifierStart(CobolLexerWithCodeReader::isLetterOrDigit);
+		idLexer.isIdentifierPart(CobolLexerWithCodeReader::isIdentifierPart);
 		for (String code : cases.keySet()) {
-			Assertions.assertEquals(cases.get(code), codeToToken(code, CobolLexer::scanIdentifier).toString());
+			Assertions.assertEquals(cases.get(code), codeToToken(code, CobolLexerWithCodeReader::scanIdentifier).toString());
 		}
 	}
 
 	@Test
 	void stringLiteral() {
 		Assertions.assertEquals("Token(STRING_LITERAL, ''single quoted string'', (1, 1))",
-				codeToToken("'single quoted string'", CobolLexer::onSingleQuote).toString());
+				codeToToken("'single quoted string'", CobolLexerWithCodeReader::onSingleQuote).toString());
 		Assertions.assertEquals("Token(STRING_LITERAL, '\"double quoted string\"', (1, 1))",
-				codeToToken("\"double quoted string\"", CobolLexer::scanStringLiteral).toString());
+				codeToToken("\"double quoted string\"", CobolLexerWithCodeReader::scanStringLiteral).toString());
 	}
 
 	@Test

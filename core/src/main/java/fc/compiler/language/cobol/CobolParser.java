@@ -10,7 +10,7 @@ import fc.compiler.common.ast.statement.*;
 import fc.compiler.common.parser.ParserBase;
 import fc.compiler.common.parser.ParserRegistry;
 import fc.compiler.common.parser.TokenReader;
-import fc.compiler.common.token.Token;
+import fc.compiler.common.token.StringToken;
 import fc.compiler.language.cobol.ast.CharacterString;
 import fc.compiler.language.cobol.ast.CobolCompilationUnit;
 import fc.compiler.language.cobol.ast.CobolProgram;
@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 
-import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.common.token.StringTokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 
@@ -137,7 +137,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	private static void parseIdDivisionOptionalParagraph(TokenReader reader, IdDivision idDivision) {
-		for (Token token = null; ; ) {
+		for (StringToken token = null; ; ) {
 			token = reader.optionalAnyOfAndReturn(AUTHOR, INSTALLATION, DATE_WRITTEN, DATE_COMPILED, SECURITY);
 			if (token == null) {
 				break;
@@ -366,7 +366,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	private static boolean acceptLevelNumber(TokenReader reader) {
-		Token levelNumber = reader.token();
+		StringToken levelNumber = reader.token();
 		if (!levelNumber.kind().equals(NUMBER_LITERAL)
 				|| levelNumber.lexeme().length() != 2) {
 			return false;
@@ -399,7 +399,7 @@ public class CobolParser extends ParserBase {
 
 	public static CharacterString parseCharacterString(TokenReader reader, ParserRegistry registry) {
 		StringBuilder sb = new StringBuilder();
-		Token t = null;
+		StringToken t = null;
 		while ((t = reader.optionalAnyOfAndReturn(IDENTIFIER, NUMBER_LITERAL, LEFT_PAREN, RIGHT_PAREN)) != null) {
 			sb.append(t.lexeme());
 		}
@@ -408,7 +408,7 @@ public class CobolParser extends ParserBase {
 
 	public static DataValueClause parseValueClause(TokenReader reader, ParserRegistry registry) {
 		if (reader.optionalAnyOf(VALUE)) {
-			Token t = reader.acceptAnyOfAndReturn(NUMBER_LITERAL, ZERO, ZEROS, ZEROES, SPACE, SPACES);
+			StringToken t = reader.acceptAnyOfAndReturn(NUMBER_LITERAL, ZERO, ZEROS, ZEROES, SPACE, SPACES);
 			if (t != null) {
 				return new DataValueClause().value(t.lexeme());
 			}
@@ -456,13 +456,13 @@ public class CobolParser extends ParserBase {
 
 	public static DisplayClause parseDisplayClause(TokenReader reader, ParserRegistry registry) {
 		reader.acceptAnyOf(DISPLAY);
-		Token token = reader.acceptAnyOfAndReturn(STRING_LITERAL);
+		StringToken token = reader.acceptAnyOfAndReturn(STRING_LITERAL);
 		return new DisplayClause().value(token.lexeme());
 	}
 
 	public static boolean isNewDivision(TokenReader reader) {
-		Token token1 = reader.peekToken(1);
-		Token token2 = reader.peekToken(2);
+		StringToken token1 = reader.peekToken(1);
+		StringToken token2 = reader.peekToken(2);
 		return token2.kind() == DIVISION
 				&& (token1.kind() == ENVIRONMENT || token1.kind() == DATA || token1.kind() == PROCEDURE);
 	}
@@ -727,7 +727,7 @@ public class CobolParser extends ParserBase {
 		boolean with = reader.optional(WITH);
 		boolean test = reader.optional(TEST);
 		if (with || test) {
-			Token t = reader.acceptAnyOfAndReturn(BEFORE, AFTER);
+			StringToken t = reader.acceptAnyOfAndReturn(BEFORE, AFTER);
 			stmt.beforeTest(t.kind() == BEFORE);
 			if (reader.optional(UNTIL)) {
 				stmt.untilExpression(parseConditionalExpression(reader, registry));
@@ -1045,7 +1045,7 @@ public class CobolParser extends ParserBase {
 		} else if (reader.optionalAnyOf(EQUAL)) {
 			operator = "=";
 		} else {
-			Token t = reader.optionalAnyOfAndReturn(GT, GT_EQUAL, LT, LT_EQUAL, EQUAL, NOT_EQUAL);
+			StringToken t = reader.optionalAnyOfAndReturn(GT, GT_EQUAL, LT, LT_EQUAL, EQUAL, NOT_EQUAL);
 			if (t != null) {
 				operator = t.lexeme();
 			}
@@ -1055,7 +1055,7 @@ public class CobolParser extends ParserBase {
 
 	public static Expression parseBinaryExpression(TokenReader reader, ParserRegistry registry) {
 		Expression expr = parseUnaryExpression(reader, registry);
-		Token t = reader.optionalAnyOfAndReturn(PLUS, MINUS, STAR, SLASH);
+		StringToken t = reader.optionalAnyOfAndReturn(PLUS, MINUS, STAR, SLASH);
 		if (t == null)
 			return expr;
 
@@ -1070,7 +1070,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	public static Expression parseUnaryExpression(TokenReader reader, ParserRegistry registry) {
-		Token token = reader.optionalAnyOfAndReturn(PLUS, MINUS);
+		StringToken token = reader.optionalAnyOfAndReturn(PLUS, MINUS);
 		if (token != null) {
 			return new PrefixUnaryExpression().operator(token.lexeme())
 					.expression(parseUnaryExpression(reader, registry));
@@ -1080,7 +1080,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	public static Expression parsePrimaryExpression(TokenReader reader, ParserRegistry registry) {
-		Token t = null;
+		StringToken t = null;
 		Expression expr = null;
 		if (reader.isKind(IDENTIFIER)) {
 			expr = parseIdentifier(reader, registry);

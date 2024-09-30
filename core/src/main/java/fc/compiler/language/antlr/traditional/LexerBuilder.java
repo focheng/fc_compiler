@@ -44,6 +44,7 @@ public class LexerBuilder extends ClassBuilderBase {
 		sb.setLength(0);
 		buildFileHeader();
 		buildScanToken();
+		buildScanMethods();
 		sb.append(s);
 		buildFileFooter();
 		return sb.toString();
@@ -121,12 +122,21 @@ public class LexerBuilder extends ClassBuilderBase {
 		return group.stream().collect(Collectors.groupingBy(node -> node.lexeme.charAt(0)));
 	}
 
+	private void buildScanMethods() {
+		buildScanIdentifier();
+//		buildScanComment();
+	}
+
+	private void buildScanIdentifier() {
+
+	}
+
 	public void buildFileHeader() {
 		add(STR."package \{packageName};");
 		addEmptyLine();
 		add(STR."import TODO;");
 		addEmptyLine();
-		add(STR."public class \{lang}Parser {");
+		add(STR."public class \{lang}Lexer extends CodeReaderBase {");
 	}
 
 	public void buildFileFooter() {
@@ -138,12 +148,5 @@ public class LexerBuilder extends ClassBuilderBase {
 	public static class CharNode {
 		String lexeme;
 		String kind;
-		// -- attributes --
-		boolean optional;
-
-		public CharNode(String key, String value) {
-			this.lexeme = key;
-			this.kind = value;
-		}
 	}
 }

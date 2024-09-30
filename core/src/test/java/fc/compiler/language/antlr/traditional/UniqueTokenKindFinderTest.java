@@ -4,7 +4,6 @@ import fc.compiler.language.antlr.ast.AntlrCompilationUnit;
 import org.junit.jupiter.api.Test;
 
 import static fc.compiler.language.antlr.traditional.UniqueTokenKindFinder.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author FC
@@ -30,7 +29,7 @@ class UniqueTokenKindFinderTest {
 		AntlrCompilationUnit cu = parser.parseCompilationUnit();
 
 		UniqueTokenKindFinder finder = new UniqueTokenKindFinder();
-		finder.kb(new TokenKindBuilder());
+		finder.tokenKindBuilder(new TokenKindBuilder());
 		finder.visit(cu, new UniqueTokenKinds());
 		return finder;
 	}

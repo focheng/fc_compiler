@@ -1,8 +1,8 @@
 package fc.compiler.language.cobol;
 
 import fc.compiler.common.lexer.*;
-import fc.compiler.common.token.Token;
-import fc.compiler.common.token.TokenKind;
+import fc.compiler.common.token.StringToken;
+import fc.compiler.common.token.StringTokenKind;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -11,7 +11,7 @@ import java.lang.reflect.Field;
 import static fc.compiler.common.lexer.Constants.*;
 import static fc.compiler.common.lexer.Constants.CR;
 import static fc.compiler.common.lexer.Constants.SPACE;
-import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.common.token.StringTokenKind.*;
 import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 /**
@@ -24,16 +24,16 @@ import static fc.compiler.language.cobol.CobolTokenKind.*;
  * @author FC
  */
 @Slf4j
-public class CobolLexer extends LexerBase {
+public class CobolLexerWithCodeReader extends LexerWithCodeReaderBase {
 	protected CobolCompilerOptions options;
 	@Getter protected boolean previousTokenLineTerminator = true;
 
-	public CobolLexer() {
+	public CobolLexerWithCodeReader() {
 		this.mapper = initLexerMapper();
 		initReservedKeywords();
 	}
 
-	public Token scan(CodeReaderBase reader) {
+	public StringToken scanToken(CodeReaderBase reader) {
 		reader.onStartToken();
 		if (reader.isEndOfLine()) {
 			previousTokenLineTerminator = true;
@@ -48,7 +48,7 @@ public class CobolLexer extends LexerBase {
 				case 'D':
 					if (!options.debugMode) {
 						reader.skipToEndOfLine();
-						return new Token("IGNORED DEBUG CODE", reader.position).lexeme(reader.lexeme());
+						return new StringToken("IGNORED DEBUG CODE", reader.lexeme(), reader.position);
 					} else { // ignore this character.
 						reader.nextChar();
 						break;
@@ -61,46 +61,46 @@ public class CobolLexer extends LexerBase {
 //					}
 			}
 		}
-		return super.scan(reader);
+		return super.scanToken(reader);
 	}
 
 	public LexerMapper initLexerMapper() {
 		LexerMapper mapper = new LexerMapper();
-		mapper.mapLexer(Constants.EOF,    LexerBase::scanEOF);
+		mapper.mapLexer(Constants.EOF,    LexerWithCodeReaderBase::scanEOF);
 
-		mapper.mapLexer(SPACE,  LexerBase::scanWhiteSpaces);
-		mapper.mapLexer(TAB,    LexerBase::scanWhiteSpaces);
-		mapper.mapLexer(FF,     LexerBase::scanWhiteSpaces);
-		mapper.mapLexer(LF,     LexerBase::scanLineTerminator);
-		mapper.mapLexer(CR,     LexerBase::scanLineTerminator);
+		mapper.mapLexer(SPACE,  LexerWithCodeReaderBase::scanWhiteSpaces);
+		mapper.mapLexer(TAB,    LexerWithCodeReaderBase::scanWhiteSpaces);
+		mapper.mapLexer(FF,     LexerWithCodeReaderBase::scanWhiteSpaces);
+		mapper.mapLexer(LF,     LexerWithCodeReaderBase::scanLineTerminator);
+		mapper.mapLexer(CR,     LexerWithCodeReaderBase::scanLineTerminator);
 
-		for (char c = 'a'; c <= 'z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
-		for (char c = 'A'; c <= 'Z'; c++) mapper.mapLexer(c, CobolLexer::scanIdentifier);
-		for (char c = '0'; c <= '9'; c++) mapper.mapLexer(c, CobolLexer::onDigit);
+		for (char c = 'a'; c <= 'z'; c++) mapper.mapLexer(c, CobolLexerWithCodeReader::scanIdentifier);
+		for (char c = 'A'; c <= 'Z'; c++) mapper.mapLexer(c, CobolLexerWithCodeReader::scanIdentifier);
+		for (char c = '0'; c <= '9'; c++) mapper.mapLexer(c, CobolLexerWithCodeReader::onDigit);
 
 		// separators
-		mapper.mapLexer(',', CobolLexer::onComma);	    // Comma
-		mapper.mapLexer(';', CobolLexer::onSemicolon);	// Semicolon
-		mapper.mapLexer('.', CobolLexer::onPeriod);	    // Period or decimal point
-		mapper.mapLexer('(', LexerBase::scanLeftParen);	// Left parenthesis
-		mapper.mapLexer(')', LexerBase::scanRightParen);// Right parenthesis
-		mapper.mapLexer(':', LexerBase::scanColon);	    // Colon
+		mapper.mapLexer(',', CobolLexerWithCodeReader::onComma);	    // Comma
+		mapper.mapLexer(';', CobolLexerWithCodeReader::onSemicolon);	// Semicolon
+		mapper.mapLexer('.', CobolLexerWithCodeReader::onPeriod);	    // Period or decimal point
+		mapper.mapLexer('(', LexerWithCodeReaderBase::scanLeftParen);	// Left parenthesis
+		mapper.mapLexer(')', LexerWithCodeReaderBase::scanRightParen);// Right parenthesis
+		mapper.mapLexer(':', LexerWithCodeReaderBase::scanColon);	    // Colon
 		mapper.mapLexer('&', reader -> scanSingleCharToken(reader, AMPERSAND));	// Ampersand
-		mapper.mapLexer('=', CobolLexer::onEqual);	// Equal sign
-		mapper.mapLexer('*', LexerBase::scanLineComment);	// Asterisk
+		mapper.mapLexer('=', CobolLexerWithCodeReader::onEqual);	// Equal sign
+		mapper.mapLexer('*', LexerWithCodeReaderBase::scanLineComment);	// Asterisk
 
 //		mapper.mapLexer('+', );	// Plus sign
 //		mapper.mapLexer('-', );	// Minus sign or hyphen
 //		mapper.mapLexer('/', );	// Slash
 //		mapper.mapLexer('$', );	// Dollar sign
-		mapper.mapLexer('>', CobolLexer::onGT);	// Greater-than sign
-		mapper.mapLexer('<', CobolLexer::onLT);	// Less-than sign
+		mapper.mapLexer('>', CobolLexerWithCodeReader::onGT);	// Greater-than sign
+		mapper.mapLexer('<', CobolLexerWithCodeReader::onLT);	// Less-than sign
 //		mapper.mapLexer('_', );	// Underscore
 
-		mapper.mapLexer('\'', CobolLexer::onSingleQuote);
-		mapper.mapLexer('\"', LexerBase::scanStringLiteral);
+		mapper.mapLexer('\'', CobolLexerWithCodeReader::onSingleQuote);
+		mapper.mapLexer('\"', LexerWithCodeReaderBase::scanStringLiteral);
 
-		mapper.setDefaultLexer(LexerBase::scanDummy);
+		mapper.setDefaultLexer(LexerWithCodeReaderBase::scanDummy);
 		return mapper;
 	}
 
@@ -140,56 +140,56 @@ public class CobolLexer extends LexerBase {
 	 *      COPY copybook-name REPLACING ==:WS:== BY ==WS1==.
 	 */
 
-	public static Token onComma(CodeReaderBase reader) {
+	public static StringToken onComma(CodeReaderBase reader) {
 		return scanSeparator(reader, ',', COMMA);
 	}
 
-	public static Token onSemicolon(CodeReaderBase reader) {
+	public static StringToken onSemicolon(CodeReaderBase reader) {
 		return scanSeparator(reader, ';', SEMICOLON);
 	}
 
-	public static Token onPeriod(CodeReaderBase reader) {
+	public static StringToken onPeriod(CodeReaderBase reader) {
 		return scanSeparator(reader, '.', DOT);
 	}
 
-	public static Token scanSeparator(CodeReaderBase reader, char leadingChar, String tokenKind) {
-		reader.accept(leadingChar);
+	public static StringToken scanSeparator(CodeReaderBase reader, char leadingChar, String tokenKind) {
+		reader.optionalChar(leadingChar);
 		if (Character.isWhitespace(reader.ch) || reader.ch == Constants.EOF) {
 			reader.nextChar();
 			for (; Character.isWhitespace(reader.ch); reader.nextChar()) {}
-			return new Token(tokenKind, reader.position).lexeme(reader.lexeme());
+			return new StringToken(tokenKind, reader.lexeme(), reader.position);
 		} else {
 			return lexError(reader, "Separator " + leadingChar + " is not followed by space");
 		}
 	}
 
-	private static Token onEqual(CodeReaderBase reader) {
-		reader.accept('=');
-		if (reader.accept('=')) {
+	private static StringToken onEqual(CodeReaderBase reader) {
+		reader.optionalChar('=');
+		if (reader.optionalChar('=')) {
 			/** The == pseudo-text delimiter */
-			return new Token("PSEUDO_TEXT", reader.position).lexeme(reader.lexeme());
+			return new StringToken("PSEUDO_TEXT", reader.lexeme(), reader.position);
 		} else {
-			return new Token(EQUAL, reader.position).lexeme(reader.lexeme());
+			return new StringToken(EQUAL, reader.lexeme(), reader.position);
 		}
 	}
 
-	private static Token onGT(CodeReaderBase reader) {
-		reader.accept('>');
-		if (reader.accept('=')) {
-			return new Token(GT_EQUAL, reader.position).lexeme(reader.lexeme());
+	private static StringToken onGT(CodeReaderBase reader) {
+		reader.optionalChar('>');
+		if (reader.optionalChar('=')) {
+			return new StringToken(GT_EQUAL, reader.lexeme(), reader.position);
 		} else {
-			return new Token(GT, reader.position).lexeme(reader.lexeme());
+			return new StringToken(GT, reader.lexeme(), reader.position);
 		}
 	}
 
-	private static Token onLT(CodeReaderBase reader) {
-		reader.accept('<');
-		if (reader.accept('=')) {
-			return new Token(LT_EQUAL, reader.position).lexeme(reader.lexeme());
-		} else if (reader.accept('>')) {
-			return new Token(NOT_EQUAL, reader.position).lexeme(reader.lexeme());
+	private static StringToken onLT(CodeReaderBase reader) {
+		reader.optionalChar('<');
+		if (reader.optionalChar('=')) {
+			return new StringToken(LT_EQUAL, reader.lexeme(), reader.position);
+		} else if (reader.optionalChar('>')) {
+			return new StringToken(NOT_EQUAL, reader.lexeme(), reader.position);
 		} else {
-			return new Token(LT, reader.position).lexeme(reader.lexeme());
+			return new StringToken(LT, reader.lexeme(), reader.position);
 		}
 	}
 
@@ -210,7 +210,7 @@ public class CobolLexer extends LexerBase {
 	 * - Floating-point numbers. e.g. +9.999E-3
 	 *      [+/-] mantissa E [+/-] exponent
 	 */
-	public static Token onSingleQuote(CodeReaderBase reader) {
+	public static StringToken onSingleQuote(CodeReaderBase reader) {
 		return scanStringLiteral(reader, '\'');
 	}
 
@@ -233,9 +233,9 @@ public class CobolLexer extends LexerBase {
 	 *      - Figurative Constants.
 	 *      - Special Character Words.
 	 */
-	public static Token scanIdentifier(CodeReaderBase reader) {
+	public static StringToken scanIdentifier(CodeReaderBase reader) {
 		char prev = reader.ch;
-		if (!reader.accept(CobolLexer::isLetterOrDigit)) {
+		if (!reader.optionalChar(CobolLexerWithCodeReader::isLetterOrDigit)) {
 			return lexError(reader, "invalid identifier start character");
 		}
 
@@ -249,19 +249,19 @@ public class CobolLexer extends LexerBase {
 
 		String lexeme = reader.lexeme();
 		String uppercase = lexeme.toUpperCase();
-		Token token = new Token(TokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
-				reader.position).lexeme(lexeme);
+		StringToken token = new StringToken(StringTokenKind.reservedKeywords.getOrDefault(uppercase, IDENTIFIER),
+				lexeme, reader.position);
 		optionalIdDivisionParagraph(reader, token);
 		return token;
 	}
 
-	private static boolean optionalIdDivisionParagraph(CodeReaderBase reader, Token token) {
+	private static boolean optionalIdDivisionParagraph(CodeReaderBase reader, StringToken token) {
 		if (token.kind() == AUTHOR
 				|| token.kind() == INSTALLATION
 				|| token.kind() == DATE_WRITTEN
 				|| token.kind() == DATE_COMPILED
 				|| token.kind() == SECURITY) {
-			reader.accept('.');
+			reader.optionalChar('.');
 			String commentEntry = optionalCommentEntry(reader);
 			token.attribute(token.kind(), commentEntry);
 			return true;
@@ -281,16 +281,16 @@ public class CobolLexer extends LexerBase {
 		return reader.lexeme();
 	}
 
-	public static Token onDigit(CodeReaderBase reader) {
+	public static StringToken onDigit(CodeReaderBase reader) {
 		reader.acceptDigits();
-		if (reader.accept('.')) {
+		if (reader.optionalChar('.')) {
 			reader.acceptDigits();
-			return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
+			return new StringToken(NUMBER_LITERAL, reader.lexeme(), reader.position);
 		} else if (isIdentifierPart(reader.ch)) {
-			while (reader.accept(CobolLexer::isIdentifierPart)) {}
-			return new Token(IDENTIFIER, reader.position).lexeme(reader.lexeme());
+			while (reader.optionalChar(CobolLexerWithCodeReader::isIdentifierPart)) {}
+			return new StringToken(IDENTIFIER, reader.lexeme(), reader.position);
 		} else {
-			return new Token(NUMBER_LITERAL, reader.position).lexeme(reader.lexeme());
+			return new StringToken(NUMBER_LITERAL, reader.lexeme(), reader.position);
 		}
 	}
 

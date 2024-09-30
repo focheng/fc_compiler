@@ -1,37 +1,37 @@
 package fc.compiler.common.lexer;
 
-import fc.compiler.common.token.Token;
-import fc.compiler.common.token.TokenKind;
+import fc.compiler.common.token.StringToken;
+import fc.compiler.common.token.StringTokenKind;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.util.function.Predicate;
 
-import static fc.compiler.common.token.TokenKind.IDENTIFIER;
+import static fc.compiler.common.token.StringTokenKind.IDENTIFIER;
 
 /**
  * @author FC
  */
 @Getter @Setter @Accessors(fluent= true)
-public class IdentifierLexer extends LexerBase {
-	private Predicate<Character> isIdentifierStart = IdentifierLexer::isIdentifierStartDefault;
-	private Predicate<Character> isIdentifierPart  = IdentifierLexer::isIdentifierPartDefault;
+public class IdentifierLexerWithCodeReader extends LexerWithCodeReaderBase {
+	private Predicate<Character> isIdentifierStart = IdentifierLexerWithCodeReader::isIdentifierStartDefault;
+	private Predicate<Character> isIdentifierPart  = IdentifierLexerWithCodeReader::isIdentifierPartDefault;
 	protected boolean caseSensitive = true;
 
 
 	@Override
-	public Token scan(CodeReaderBase reader) {
-		if (!reader.accept(isIdentifierStart)) {
+	public StringToken scanToken(CodeReaderBase reader) {
+		if (!reader.optionalChar(isIdentifierStart)) {
 			return lexError(reader, "Invalid identifier starting character.");
 		}
 
-		while (reader.accept(isIdentifierPart)) ;
+		while (reader.optionalChar(isIdentifierPart)) ;
 
 		String lexeme = reader.lexeme();
 		String key = caseSensitive ? lexeme : lexeme.toUpperCase();
-		String kind = TokenKind.reservedKeywords.getOrDefault(key, IDENTIFIER);
-		Token token = new Token(kind, reader.position).lexeme(lexeme);
+		String kind = StringTokenKind.reservedKeywords.getOrDefault(key, IDENTIFIER);
+		StringToken token = new StringToken(kind, lexeme, reader.position);
 		return token;
 	}
 

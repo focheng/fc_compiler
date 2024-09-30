@@ -1,7 +1,6 @@
 package fc.compiler.common.parser;
 
 import fc.compiler.common.ast.AstNode;
-import fc.compiler.common.token.Token;
 
 /**
  * Parser hub will dispatch registered parser to the given token kind.

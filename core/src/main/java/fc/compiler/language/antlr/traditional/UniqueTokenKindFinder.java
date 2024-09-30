@@ -34,8 +34,9 @@ import java.util.stream.Collectors;
  */
 @Accessors(fluent = true, chain = true)
 public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.UniqueTokenKinds> {
+	// token kind -> rule list
 	private final Map<String, UniqueTokenKinds> rule2UniqueTokenKinds = new HashMap<>();
-	@Setter private TokenKindBuilder kb;
+	@Setter private TokenKindBuilder tokenKindBuilder;
 
 	/**
 	 * <kind1, quantifier, next> & <kind2, quantifier, next> & <kind3, quantifier, next>
@@ -112,7 +113,7 @@ public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.Uniq
 	@Override
 	public void visit(StringLiteral node, UniqueTokenKinds kinds,
 	                  Quantifier quantifier) {
-		kinds.add(kb.getTokenKind(node.value()));
+		kinds.add(tokenKindBuilder.getTokenKind(node.value()));
 	}
 
 	private boolean hasMandatory(KindLinkNode link) {

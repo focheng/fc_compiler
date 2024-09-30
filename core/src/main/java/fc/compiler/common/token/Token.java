@@ -1,8 +1,6 @@
 package fc.compiler.common.token;
 
 import fc.compiler.common.lexer.Position;
-import lombok.*;
-import lombok.experimental.Accessors;
 
 import java.util.HashMap;
 
@@ -19,55 +17,9 @@ import java.util.HashMap;
  *
  * @author FC
  */
-@Getter @Setter @Accessors(fluent = true, chain = true)
-@NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
-public class Token implements Cloneable {
-	@NonNull protected String kind;
-	protected String lexeme;
-	protected HashMap<String, Object> attributes;
-	@NonNull protected Position position;
-
-	public Token radix(int radix) {
-		if (attributes == null) {
-			attributes = new HashMap<>();
-		}
-		attributes.put("radix", radix);
-		return this;
-	}
-
-	public Object attribute(String key) {
-		return attributes == null ? null : attributes.get(key);
-	}
-
-	public Token attribute(String key, Object value) {
-		if (attributes == null) {
-			attributes = new HashMap<>();
-		}
-		attributes.put(key, value);
-		return this;
-	}
-
-	@SuppressWarnings("unchecked")
-	public Object clone() {
-		try {
-			Token copy = (Token)super.clone();
-			copy.attributes = (HashMap<String, Object>)this.attributes.clone();
-			return copy;
-		} catch (CloneNotSupportedException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		sb.append("Token(").append(kind).append(", ");
-		if (lexeme != null) {
-			sb.append("'").append(lexeme).append("'");
-		}
-		sb.append(", ").append(position);
-		if (attributes != null)
-			sb.append(", attributes=").append(attributes);
-		sb.append(")");
-		return sb.toString();
-	}
+public interface Token<Kind> {
+	public Kind kind();
+	public String lexeme();
+	public Position position();
+	public HashMap<String, Object> attributes();
 }

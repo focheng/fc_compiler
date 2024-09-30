@@ -1,11 +1,11 @@
 package fc.compiler.language.cobol;
 
-import fc.compiler.common.token.TokenKind;
+import fc.compiler.common.token.StringTokenKind;
 
 /**
  * @author FC
  */
-public interface CobolTokenKind extends TokenKind {
+public interface CobolTokenKind extends StringTokenKind {
 	// -- separators --
 //	String SEPARATOR_COMMA = "SEPARATOR_COMMA";
 //	String SEPARATOR_SEMICOLON = "SEPARATOR_SEMICOLON";

@@ -1,8 +1,8 @@
 package fc.compiler.common.parser;
 
 import fc.compiler.common.lexer.CodeReaderBase;
-import fc.compiler.common.lexer.Lexer;
-import fc.compiler.common.token.Token;
+import fc.compiler.common.lexer.LexerWithCodeReader;
+import fc.compiler.common.token.StringToken;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -13,7 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.common.token.StringTokenKind.*;
 
 /**
  * A bridge between Lexer and Parser just like CodeReader
@@ -21,20 +21,20 @@ import static fc.compiler.common.token.TokenKind.*;
  */
 @Accessors(fluent = true) @Slf4j
 public class TokenReader {
-	@Getter @Setter	protected Lexer lexer;
+	@Getter @Setter	protected LexerWithCodeReader lexer;
 	@Getter @Setter	protected CodeReaderBase codeReaderBase;
-	@Getter protected Token token;  // current token
-	protected List<Token> lookaheadTokens = new ArrayList<>();
+	@Getter protected StringToken token;  // current token
+	protected List<StringToken> lookaheadTokens = new ArrayList<>();
 	@Getter protected boolean ignoreSpecialTokens = true;  // white spaces, line terminator and comments
 
-	public TokenReader(Lexer lexer, CodeReaderBase codeReaderBase) {
+	public TokenReader(LexerWithCodeReader lexer, CodeReaderBase codeReaderBase) {
 		this.codeReaderBase = codeReaderBase;
 		this.lexer = lexer;
 
 		nextToken();
 	}
 
-	public Token nextToken() {
+	public StringToken nextToken() {
 		if (!lookaheadTokens.isEmpty()) {
 			token = lookaheadTokens.remove(0);    // always the bottom one
 		} else {
@@ -48,7 +48,7 @@ public class TokenReader {
 	 * @param lookahead current token if 0.
 	 * @return
 	 */
-	public Token peekToken(int lookahead) {
+	public StringToken peekToken(int lookahead) {
 		if (lookahead == 0) {
 			return token;
 		} else {
@@ -60,15 +60,15 @@ public class TokenReader {
 		}
 	}
 
-	protected Token doNextToken() {
-		Token t = null;
+	protected StringToken doNextToken() {
+		StringToken t = null;
 		do {
-			t = lexer.scan(codeReaderBase);
+			t = lexer.scanToken(codeReaderBase);
 		} while (ignoreSpecialTokens && isSpecialToken(t));
 		return t;
 	}
 
-	protected boolean isSpecialToken(Token t) {
+	protected boolean isSpecialToken(StringToken t) {
 		return t.kind() == LINE_COMMENT || t.kind() == BLOCK_COMMENT || t.kind() == DOC_COMMENT
 				|| t.kind() == WHITE_SPACES || t.kind() == LINE_TERMINATOR;
 	}
@@ -93,8 +93,8 @@ public class TokenReader {
 		return false;
 	}
 
-	protected Token returnAndNextTokenIfEqual(boolean errorIfNotEqual, String... tokenKinds) {
-		Token currentToken = token;
+	protected StringToken returnAndNextTokenIfEqual(boolean errorIfNotEqual, String... tokenKinds) {
+		StringToken currentToken = token;
 		for (String tokenKind : tokenKinds) {
 			if (token.kind() == tokenKind) {
 				nextToken();    // move to next token
@@ -117,7 +117,7 @@ public class TokenReader {
 	}
 
 	/** return current token and move to next token if equal. otherwise, report error. */
-	public Token acceptAnyOfAndReturn(String... tokenKinds) {
+	public StringToken acceptAnyOfAndReturn(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(true, tokenKinds);
 	}
 
@@ -136,7 +136,7 @@ public class TokenReader {
 	}
 
 	/** return current token and move to next token if equal. otherwise, report error. */
-	public Token optionalAnyOfAndReturn(String... tokenKinds) {
+	public StringToken optionalAnyOfAndReturn(String... tokenKinds) {
 		return returnAndNextTokenIfEqual(false, tokenKinds);
 	}
 
@@ -167,7 +167,7 @@ public class TokenReader {
 	public boolean isKindNextTokens(String... tokenKinds) {
 		peekToken(tokenKinds.length - 1); // to peek n-1 next tokens.
 		for (int i = 0; i < tokenKinds.length; i++) {
-			Token t = peekToken(i);
+			StringToken t = peekToken(i);
 			if (t.kind() != tokenKinds[i]) {
 				return false;
 			}
@@ -184,7 +184,7 @@ public class TokenReader {
 
 	public void skipWhitespacesAndComments() {
 		// skip white spaces and comments
-		for (Token token = token();
+		for (StringToken token = token();
 		     token.kind() == WHITE_SPACES || token.kind() == LINE_COMMENT;
 		     token = nextToken()) {
 		}
@@ -192,7 +192,7 @@ public class TokenReader {
 
 	/** Skip all tokens until the given token kind. */
 	public void skipTo(String tokenKind) {
-		for (Token t = token(); tokenKind.equals(t.kind()); t = nextToken()) {
+		for (StringToken t = token(); tokenKind.equals(t.kind()); t = nextToken()) {
 		}
 	}
 

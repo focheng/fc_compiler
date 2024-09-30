@@ -7,14 +7,14 @@ import fc.compiler.common.ast.expression.Identifier;
 import fc.compiler.common.parser.ParserBase;
 import fc.compiler.common.parser.ParserRegistry;
 import fc.compiler.common.parser.TokenReader;
-import fc.compiler.common.token.Token;
+import fc.compiler.common.token.StringToken;
 import fc.compiler.language.antlr.ast.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static fc.compiler.common.token.TokenKind.*;
+import static fc.compiler.common.token.StringTokenKind.*;
 
 /**
  * Antlr Extension Parser.
@@ -60,7 +60,7 @@ public class AntlrParser extends ParserBase {
 
 	public static AntlrCompilationUnit parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
 		AntlrCompilationUnit unit = new AntlrCompilationUnit();
-		Token token = reader.optionalAnyOfAndReturn(AntlrKeywords.LEXER, AntlrKeywords.PARSER);
+		StringToken token = reader.optionalAnyOfAndReturn(AntlrKeywords.LEXER, AntlrKeywords.PARSER);
 		if (token != null)
 			unit.isLexer(token.kind() == AntlrKeywords.LEXER);
 

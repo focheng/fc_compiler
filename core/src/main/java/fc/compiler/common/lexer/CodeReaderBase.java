@@ -1,11 +1,6 @@
 package fc.compiler.common.lexer;
 
-import fc.compiler.common.token.Token;
-
-import java.util.Arrays;
 import java.util.function.Predicate;
-
-import static fc.compiler.common.lexer.Constants.*;
 
 /**
  * A reader class will read source code and provide characters in stream.
@@ -13,11 +8,19 @@ import static fc.compiler.common.lexer.Constants.*;
  * @author FC
  */
 public class CodeReaderBase {
+	protected static final char EOF_CHAR   = 0x1A;   // control-z, End of File.
+	protected static final char SPACE      = ' ';
+	protected static final char TAB        = '\t';
+	protected static final char VT         = 0x0B;
+	protected static final char FF         = 0x0C;
+	protected static final char CR         = '\r';
+	protected static final char LF         = '\n';
+
 	// -- text of source code and buffer information. --
 	protected char[] code;  // the copy of source code from file. also input buffer.
-	public char ch;      // the current CHaracter read in the source code.
+	public char ch;         // the current CHaracter read in the source code.
 	protected int bp = -1;  // Buffer Position/Pointer is the index of next char to be read.
-						 // -1 indicate reading does not start.
+						    // -1 indicate reading does not start.
 
 	// -- character buffer for lexeme of multiple characters like literal/identifier.
 	//StringBuilder sbLexeme = new StringBuilder();
@@ -29,7 +32,11 @@ public class CodeReaderBase {
 	protected int lineNo = 1;           // starting from 1
 	protected int lineStartPosition;    // the start position of current line in the whole file.
 
+	public CodeReaderBase(String code) { this(toCharArrayPlusEof(code), null); }
 	public CodeReaderBase(char[] code) { this(code, null); }
+	public CodeReaderBase(String code, String fileName) {
+		this(toCharArrayPlusEof(code), fileName);
+	}
 	public CodeReaderBase(char[] code, String fileName) {
 		this.code = code;
 		this.fileName = fileName;
@@ -46,7 +53,7 @@ public class CodeReaderBase {
 		if (bp < code.length) {
 			ch = code[bp];
 		} else {
-			ch = EOF;
+			ch = EOF_CHAR;
 		}
 		return ch;
 	}
@@ -59,24 +66,11 @@ public class CodeReaderBase {
 	/** peek and return the current + N character without moving bp forward. */
 	public char peekChar(int n) {
 		if (bp + n >= code.length)
-			return EOF;
-		ch = code[bp + n];  // TODO: check overflow
+			return EOF_CHAR;
+		ch = code[bp + n];
 		return ch;
 	}
 
-	public String lexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
-
-	public void onStartToken() { onStartToken(null); }
-	public void onStartToken(Token token) {
-		sp = bp;
-		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
-		if (token != null)
-			token.position(position);
-	}
-
-	public void onEndToken(Token token) {
-		token.lexeme(lexeme());
-	}
 
 	// -- check type of current character --
 
@@ -94,13 +88,15 @@ public class CodeReaderBase {
 	public boolean isLetterOrDigit() { return isLetter() || isDecDigit(); }
 
 	public boolean isWhiteSpace() {
-		return ch == SPACE || ch == TAB || ch == FF;
+		return ch == SPACE || ch == TAB || ch == FF || ch == VT;
 	}
 	public boolean isEndOfLine() {
 		return '\r' == ch || ch == '\n';
 	}
 
-	public boolean accept(Predicate<Character> predicate) {
+	// -- accept/optional: match and next char --
+
+	public boolean optionalChar(Predicate<Character> predicate) {
 		if (predicate.test(this.ch)) {
 			nextChar();
 			return true;
@@ -109,28 +105,45 @@ public class CodeReaderBase {
 	}
 
 	/**
-	 * Compare the current character with the given character.
+	 * Compare the current character with the expected character.
 	 * If matching, read the next character.
-	 * @param ch
 	 * @return true if matching.
 	 */
-	public boolean accept(char ch) {
-		if (this.ch == ch) {
+	public boolean optionalChar(char expected) {
+		if (this.ch == expected) {
 			nextChar();
 			return true;
 		}
 		return false;
 	}
 
+	private boolean optionalChar(char... expectedChars) {
+		int savedPosition = bp;
+		for (char expected : expectedChars) {
+			if (expected != ch) {
+				bp = savedPosition;
+				return false;
+			}
+			nextChar();
+		}
+		return true;
+	}
+
 	/**
-	 * Compare the current character with one of the given characters.
+	 * Compare the current and next characters with the characters in the string.
+	 */
+	public boolean optionalChar(String expectedChars) {
+		return optionalChar(expectedChars.toCharArray());
+	}
+
+	/**
+	 * Compare the current character with one of the expected characters.
 	 * If matching, read the next character.
-	 * @param chars
 	 * @return true if matching.
 	 */
-	public boolean accept(char... chars) {
-		for (char c : chars) {
-			if (this.ch == c) {
+	public boolean acceptAnyChar(char... expectedChars) {
+		for (char expected : expectedChars) {
+			if (this.ch == expected) {
 				nextChar();
 				return true;
 			}
@@ -139,20 +152,47 @@ public class CodeReaderBase {
 		return false;
 	}
 
+	public boolean acceptChar(Predicate<Character> predicate) {
+		if (predicate.test(this.ch)) {
+			nextChar();
+			return true;
+		}
+		logError(ch + " scanned");
+		return false;
+	}
+
+	/**
+	 * Compare the current character with the expected character.
+	 * If matching, read the next character.
+	 * @return true if matching.
+	 */
+	public boolean acceptChar(char expected) {
+		if (this.ch == expected) {
+			nextChar();
+			return true;
+		}
+		logError(expected + " is expected, but " + ch + " scanned");
+		return false;
+	}
+
+	private boolean acceptChar(char... expectedChars) {
+		int savedPosition = bp;
+		for (char expected : expectedChars) {
+			if (expected != ch) {
+				bp = savedPosition;
+				logError(expected + " is expected, but " + ch + " scanned");
+				return false;
+			}
+			nextChar();
+		}
+		return true;
+	}
+
 	/**
 	 * Compare the current and next characters with the characters in the string.
 	 */
-	public boolean accept(String s) {
-		int savedPosition = bp;
-		for (int i = 0; i < s.length(); i++) {
-			if (ch == s.charAt(i)) {
-				nextChar();
-			} else {
-				bp = savedPosition;
-				return false;
-			}
-		}
-		return true;
+	public boolean acceptChar(String expectedChars) {
+		return acceptChar(expectedChars.toCharArray());
 	}
 
 	public boolean acceptWhiteSpaces() {
@@ -160,8 +200,8 @@ public class CodeReaderBase {
 	}
 
 	public boolean acceptLineTerminator() {
-		boolean hasCR = accept(CR);
-		boolean hasLF = accept(LF);
+		boolean hasCR = optionalChar(CR);
+		boolean hasLF = optionalChar(LF);
 		if (hasCR || hasLF) {
 			lineNo++;
 			lineStartPosition = bp;
@@ -198,4 +238,29 @@ public class CodeReaderBase {
 		}
 	}
 
+	// -- helper --
+
+	public void onStartToken() {
+		sp = bp;
+		position = new Position(fileName, lineNo, sp - lineStartPosition + 1);
+	}
+
+	public String lexeme() { return String.copyValueOf(code, sp, bp - sp); }
+	//public String lexeme() { return String.valueOf(Arrays.copyOfRange(code, sp, bp)); }
+
+	public String stringLiteralLexeme() {
+		return String.copyValueOf(code, sp + 1, bp - sp - 2);
+	}
+
+
+	protected void logError(String hint) {
+		System.out.println("lex error: unsupported char " + ch + " " + hint);
+	}
+
+	public static char[] toCharArrayPlusEof(String code) {
+		char[] array = new char[code.length() + 1];
+		code.getChars(0, code.length(), array, 0);
+		array[code.length()] = EOF_CHAR;
+		return array;
+	}
 }
