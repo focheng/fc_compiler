@@ -4,8 +4,8 @@ import fc.compiler.common.ast.AstNode;
 import fc.compiler.common.ast.Statement;
 import fc.compiler.common.ast.statement.IfStatement;
 import fc.compiler.common.lexer.CodeReaderBase;
-import fc.compiler.common.parser.ParserHub;
-import fc.compiler.common.parser.TokenReader;
+import fc.compiler.common.parser.StringTokenParserHub;
+import fc.compiler.common.parser.StringTokenReader;
 import fc.compiler.language.cobol.ast.CobolCompilationUnit;
 import fc.compiler.language.cobol.ast.CobolProgram;
 import org.junit.jupiter.api.Test;
@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
  * @author FC
  */
 public class CobolParserTest {
-	protected AstNode codeToAst(String code, ParserHub parser) {
+	protected AstNode codeToAst(String code, StringTokenParserHub parser) {
 		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		reader.onStartToken();
-		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), reader);
+		StringTokenReader tokenReader = new StringTokenReader(new CobolLexerWithCodeReader(), reader);
 //		CobolParser mainParser = new CobolParser();
 		return parser.parse(tokenReader, CobolParser.initRegistry());
 	}
@@ -54,7 +54,7 @@ public class CobolParserTest {
 	}
 
 	private static void doParseCompilationUnit(String code) {
-		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(code.toCharArray()));
+		StringTokenReader tokenReader = new StringTokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(code.toCharArray()));
 		CobolCompilationUnit unit = CobolParser.parseCompilationUnit(tokenReader, CobolParser.initRegistry());
 		CobolProgram program = unit.cobolProgramList().get(0);
 		System.out.println(program.idDivision());
@@ -82,7 +82,7 @@ public class CobolParserTest {
 				"         DISPLAY 'GOT THIRD CLASS'\n" +
 				"  END-IF\n" +
 				"END-IF.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeSimpleIf.toCharArray()));
+		StringTokenReader tokenReader = new StringTokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeSimpleIf.toCharArray()));
 		IfStatement statement = CobolParser.parseIfStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}
@@ -102,7 +102,7 @@ public class CobolParserTest {
 				" WHEN \"C\" DISPLAY 'Student got SECOND CLASS'\n" +
 				" WHEN OTHER DISPLAY 'Student Failed'\n" +
 				" END-EVALUATE.\n";
-		TokenReader tokenReader = new TokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeMultiWhens.toCharArray()));
+		StringTokenReader tokenReader = new StringTokenReader(new CobolLexerWithCodeReader(), new CodeReaderBase(codeMultiWhens.toCharArray()));
 		Statement statement = CobolParser.parseEvaluateStatement(tokenReader, CobolParser.initRegistry());
 		System.out.println(statement);
 	}

@@ -10,7 +10,7 @@ import static fc.compiler.language.antlr.traditional.LexerBuilder.*;
 /**
  * @author FC
  */
-class LexerBuilder2Test {
+class LexerBuilderTest {
 
 	@Test
 	void test() {
@@ -38,8 +38,7 @@ class LexerBuilder2Test {
 		nodes.add(new CharNode(">>>=", "GT_GT_GT_EQ"));
 
 		LexerBuilder lb = new LexerBuilder();
-		lb.packageName("foo.fox");
-		lb.lang("Abc");
+		lb.options(new CodeGeneratorOptions().packageName("foo.fox").lang("Abc"));
 		lb.rootCharNodes(nodes);
 		System.out.println(lb.toCode());
 	}

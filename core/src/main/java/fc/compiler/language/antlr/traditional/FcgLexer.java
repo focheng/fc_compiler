@@ -74,11 +74,12 @@ public class FcgLexer extends LexerBase<FcgTokenKind, FcgToken> {
 		while (ch != EOF_CHAR) {
 			switch (ch) {
 				case CR:
-				case LF:    acceptLineTerminator();
+				case LF:    acceptLineTerminator();     break;
 				case '*':   nextChar();
 					if (optionalChar('/')) {
 						return FcgTokenKind.BLOCK_COMMENT.newToken(lexeme());
 					}
+					break;
 				default:    nextChar();
 			}
 		}

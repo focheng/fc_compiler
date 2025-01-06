@@ -13,6 +13,7 @@ import static fc.compiler.common.token.StringTokenKind.IDENTIFIER;
 /**
  * @author FC
  */
+@Deprecated
 @Getter @Setter @Accessors(fluent= true)
 public class IdentifierLexerWithCodeReader extends LexerWithCodeReaderBase {
 	private Predicate<Character> isIdentifierStart = IdentifierLexerWithCodeReader::isIdentifierStartDefault;

@@ -3,12 +3,21 @@ package fc.compiler.language.antlr.traditional;
 import fc.compiler.language.antlr.ast.AntlrCompilationUnit;
 import org.junit.jupiter.api.Test;
 
+import static fc.compiler.language.antlr.traditional.FcgJavaCodeGeneratorTest.CODE_CU;
 import static fc.compiler.language.antlr.traditional.UniqueTokenKindFinder.*;
 
 /**
  * @author FC
  */
 class UniqueTokenKindFinderTest {
+
+	@Test
+	void testCobolProgram() {
+		UniqueTokenKindFinder finder = initFinder(CODE_CU);
+		FirstTokenKinds kinds = finder.getUniqueTokenKinds("cobolProgram");
+		System.out.println("unique kinds: ");
+		System.out.println(kinds);
+	}
 
 	@Test
 	void test() {
@@ -18,7 +27,7 @@ class UniqueTokenKindFinderTest {
 				"moveStatement: name? MOVE (parameter comment?)?;\n" +
 				"nullStatement: ;\n";
 		UniqueTokenKindFinder finder = initFinder(code);
-		UniqueTokenKinds kinds = finder.getUniqueTokenKinds("jclStatement");
+		FirstTokenKinds kinds = finder.getUniqueTokenKinds("jclStatement");
 		System.out.println("unique kinds: ");
 		System.out.println(kinds);
 	}
@@ -29,8 +38,8 @@ class UniqueTokenKindFinderTest {
 		AntlrCompilationUnit cu = parser.parseCompilationUnit();
 
 		UniqueTokenKindFinder finder = new UniqueTokenKindFinder();
-		finder.tokenKindBuilder(new TokenKindBuilder());
-		finder.visit(cu, new UniqueTokenKinds());
+		finder.tokenKindBuilder().options(new CodeGeneratorOptions().packageName("foo.fox").lang("Abc"));
+		finder.visit(cu, new FirstTokenKinds());
 		return finder;
 	}
 }

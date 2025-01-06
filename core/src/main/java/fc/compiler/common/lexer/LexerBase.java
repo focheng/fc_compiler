@@ -7,9 +7,10 @@ import fc.compiler.language.antlr.traditional.FcgTokenKind;
 /**
  * @author FC
  */
-public abstract class LexerBase<Kind, T extends Token<Kind>> extends CodeReaderBase implements Lexer<T> {
+public abstract class LexerBase<Kind, T extends Token<Kind>>
+		extends CodeReaderBase
+		implements Lexer<T> {
 	public LexerBase(String code) {
 		super(code);
 	}
-
 }

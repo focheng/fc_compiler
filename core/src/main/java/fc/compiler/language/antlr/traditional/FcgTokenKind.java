@@ -64,7 +64,7 @@ public enum FcgTokenKind {
 	// -- IDENTIFIER --
 	IDENTIFIER              (null),
 
-	// -- Keyword --
+	// -- Keywords --
 	LEXER                   ("lexer",   KEYWORD),
 	PARSER                  ("parser",  KEYWORD),
 	GRAMMAR                 ("grammar", KEYWORD),

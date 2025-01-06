@@ -1,0 +1,10 @@
+package ${packageName};
+
+/**
+ * @author FC
+ */
+public enum ${lang}TokenKindTag {
+	KEYWORD,
+	COMMENT,
+	LITERAL,
+}

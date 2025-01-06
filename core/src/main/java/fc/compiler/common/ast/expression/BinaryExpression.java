@@ -2,17 +2,15 @@ package fc.compiler.common.ast.expression;
 
 import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.ExpressionBase;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 /**
  * @author FC
  */
-@Getter @Setter @Accessors(fluent = true) @ToString
+@Getter @Setter @Accessors(fluent = true) @ToString @NoArgsConstructor @AllArgsConstructor
 public class BinaryExpression extends ExpressionBase {
-	Expression leftOperand;
-	String operator;
-	Expression rightOperand;
+	protected Expression leftOperand;
+	protected String operator;
+	protected Expression rightOperand;
 }

@@ -7,6 +7,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 
 /**
+ * Generic literal expression.
  * @author FC
  */
 @Getter @Setter @Accessors(fluent = true) @ToString

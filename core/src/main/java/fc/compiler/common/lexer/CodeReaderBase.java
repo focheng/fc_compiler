@@ -74,7 +74,25 @@ public class CodeReaderBase {
 
 	// -- check type of current character --
 
+	/** check if the current char equals the given char. */
 	public boolean is(char c) { return this.ch == c; }
+
+	/** check if the current char equals any of the expected chars. */
+	public boolean isAnyOf(char... chars) {
+		for (char c : chars) {
+			if (this.ch == c)
+				return true;
+		}
+		return false;
+	}
+
+	public boolean isNoneOf(char... chars) {
+		for (char c : chars) {
+			if (this.ch == c)
+				return false;
+		}
+		return true;
+	}
 
 	public boolean isDecDigit() { return '0' <= ch && ch <= '9'; }
 	public boolean isOctDigit() { return '0' <= ch && ch <= '7'; }
@@ -94,72 +112,9 @@ public class CodeReaderBase {
 		return '\r' == ch || ch == '\n';
 	}
 
+
+
 	// -- accept/optional: match and next char --
-
-	public boolean optionalChar(Predicate<Character> predicate) {
-		if (predicate.test(this.ch)) {
-			nextChar();
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Compare the current character with the expected character.
-	 * If matching, read the next character.
-	 * @return true if matching.
-	 */
-	public boolean optionalChar(char expected) {
-		if (this.ch == expected) {
-			nextChar();
-			return true;
-		}
-		return false;
-	}
-
-	private boolean optionalChar(char... expectedChars) {
-		int savedPosition = bp;
-		for (char expected : expectedChars) {
-			if (expected != ch) {
-				bp = savedPosition;
-				return false;
-			}
-			nextChar();
-		}
-		return true;
-	}
-
-	/**
-	 * Compare the current and next characters with the characters in the string.
-	 */
-	public boolean optionalChar(String expectedChars) {
-		return optionalChar(expectedChars.toCharArray());
-	}
-
-	/**
-	 * Compare the current character with one of the expected characters.
-	 * If matching, read the next character.
-	 * @return true if matching.
-	 */
-	public boolean acceptAnyChar(char... expectedChars) {
-		for (char expected : expectedChars) {
-			if (this.ch == expected) {
-				nextChar();
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public boolean acceptChar(Predicate<Character> predicate) {
-		if (predicate.test(this.ch)) {
-			nextChar();
-			return true;
-		}
-		logError(ch + " scanned");
-		return false;
-	}
 
 	/**
 	 * Compare the current character with the expected character.
@@ -167,32 +122,97 @@ public class CodeReaderBase {
 	 * @return true if matching.
 	 */
 	public boolean acceptChar(char expected) {
-		if (this.ch == expected) {
+		boolean accepted = this.ch == expected;
+		if (accepted) {
 			nextChar();
-			return true;
+		} else {
+			logError(expected + " is expected, but " + ch + " scanned");
 		}
-		logError(expected + " is expected, but " + ch + " scanned");
-		return false;
+		return accepted;
 	}
 
-	private boolean acceptChar(char... expectedChars) {
-		int savedPosition = bp;
-		for (char expected : expectedChars) {
-			if (expected != ch) {
-				bp = savedPosition;
-				logError(expected + " is expected, but " + ch + " scanned");
-				return false;
-			}
+	/** Similar to acceptChar except just ignore if not matched. */
+	public boolean optionalChar(char expected) {
+		boolean accepted = this.ch == expected;
+		if (accepted) {
 			nextChar();
 		}
-		return true;
+		return accepted;
+	}
+
+	/**
+	 * Compare the current character with one of the expected characters.
+	 * If matching, read the next character. otherwise, report error.
+	 * @return true if matching.
+	 */
+	public boolean acceptAnyOf(char... expectedChars) {
+		boolean accepted = isAnyOf(expectedChars);
+		if (accepted) {
+			nextChar();
+		} else {
+			logError("any of " + expectedChars + " is expected, but " + ch + " was scanned");
+		}
+		return accepted;
+	}
+
+	/** Similar to acceptChar except just ignore if not matched. */
+	public boolean optionalAnyOf(char... expectedChars) {
+		boolean accepted = isAnyOf(expectedChars);
+		if (accepted) {
+			nextChar();
+		}
+		return accepted;
+	}
+
+	public boolean optionalChar(Predicate<Character> predicate) {
+		boolean accepted = predicate.test(this.ch);
+		if (accepted) {
+			nextChar();
+		}
+		return accepted;
+	}
+
+	public boolean acceptChar(Predicate<Character> predicate) {
+		boolean accepted = predicate.test(this.ch);
+		if (accepted) {
+			nextChar();
+		} else {
+			logError(ch + " scanned");
+		}
+		return accepted;
 	}
 
 	/**
 	 * Compare the current and next characters with the characters in the string.
 	 */
-	public boolean acceptChar(String expectedChars) {
-		return acceptChar(expectedChars.toCharArray());
+	public boolean acceptSequentialChars(char... sequence) {
+		return acceptSequentialChars(false, sequence);
+	}
+	public boolean acceptSequentialChars(String sequence) {
+		return acceptSequentialChars(sequence.toCharArray());
+	}
+	public boolean optionalSequentialChars(char... sequence) {
+		return acceptSequentialChars(true, sequence);
+	}
+	public boolean optionalSequentialChars(String sequence) {
+		return optionalSequentialChars(sequence.toCharArray());
+	}
+
+	public boolean acceptSequentialChars(boolean optional, char... sequence) {
+		int savedPosition = bp;
+		boolean allMatches = true;
+		for (char expected : sequence) {
+			if (expected != ch) {
+				allMatches = false;
+				break;
+			}
+			nextChar();
+		}
+		if (!allMatches) {
+			bp = savedPosition;
+			logError(sequence + " are expected, but " + ch + " was not matched");
+		}
+		return allMatches;
 	}
 
 	public boolean acceptWhiteSpaces() {
@@ -252,7 +272,9 @@ public class CodeReaderBase {
 		return String.copyValueOf(code, sp + 1, bp - sp - 2);
 	}
 
+	public Position position() { return this.position; }
 
+	// -- error --
 	protected void logError(String hint) {
 		System.out.println("lex error: unsupported char " + ch + " " + hint);
 	}

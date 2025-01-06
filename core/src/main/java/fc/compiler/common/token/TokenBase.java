@@ -6,23 +6,22 @@ import lombok.experimental.Accessors;
 
 import java.util.HashMap;
 
+/**
+ * Token base class.
+ * @param <Kind>
+ */
 @Getter @Setter @Accessors(fluent = true, chain = true)
 @NoArgsConstructor @RequiredArgsConstructor @AllArgsConstructor
 public class TokenBase<Kind> implements Token<Kind> {
-	@NonNull
-	protected Kind kind;
-	protected String lexeme;
-	protected HashMap<String, Object> attributes;
-	@NonNull
-	protected Position position;
+	public static final String ATTRIBUTE_RADIX	= "radix";
+	public static final String ATTRIBUTE_VALUE	= "value";
 
-	public TokenBase<Kind> radix(int radix) {
-		if (attributes == null) {
-			attributes = new HashMap<>();
-		}
-		attributes.put("radix", radix);
-		return this;
-	}
+	@NonNull protected Kind kind;
+	protected String lexeme;
+	protected Position position;
+	protected HashMap<String, Object> attributes;
+
+	// -- optional attributes --
 
 	public Object attribute(String key) {
 		return attributes == null ? null : attributes.get(key);
@@ -35,6 +34,11 @@ public class TokenBase<Kind> implements Token<Kind> {
 		attributes.put(key, value);
 		return this;
 	}
+
+	public Object radix() { return attribute(ATTRIBUTE_RADIX); }
+	public Object value() { return attribute(ATTRIBUTE_VALUE); }
+	public TokenBase<Kind> radix(int radix)		{ attribute(ATTRIBUTE_RADIX, radix); return this; }
+	public TokenBase<Kind> value(Object value)	{ attribute(ATTRIBUTE_VALUE, value); return this; }
 
 	@SuppressWarnings("unchecked")
 	public Object clone() {
@@ -50,10 +54,10 @@ public class TokenBase<Kind> implements Token<Kind> {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("Token(").append(kind).append(", ");
-		if (lexeme != null) {
+		if (lexeme != null)
 			sb.append("'").append(lexeme).append("'");
-		}
-		sb.append(", ").append(position);
+		if (position != null)
+			sb.append(", ").append(position);
 		if (attributes != null)
 			sb.append(", attributes=").append(attributes);
 		sb.append(")");

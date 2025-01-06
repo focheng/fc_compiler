@@ -1,13 +1,12 @@
 package fc.compiler.language.antlr.ast;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.Accessors;
 
 /**
  * @author FC
  */
-@Getter
+@Getter @Accessors(fluent=true, chain=true)
 @AllArgsConstructor
 public enum Quantifier {
 	EXACTLY_ONE     ("",  false, false),

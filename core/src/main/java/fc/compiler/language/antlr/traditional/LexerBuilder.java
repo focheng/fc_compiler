@@ -7,9 +7,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,21 +35,16 @@ import java.util.stream.Collectors;
 @Accessors(fluent = true, chain = true)
 public class LexerBuilder extends ClassBuilderBase {
 
-	@Getter @Setter private List<CharNode> rootCharNodes;
+	@Getter @Setter private List<CharNode> rootCharNodes = new ArrayList<>();
 
 	public String toCode() {
-		String s = sb.toString();
-		sb.setLength(0);
-		buildFileHeader();
 		buildScanToken();
 		buildScanMethods();
-		sb.append(s);
-		buildFileFooter();
 		return sb.toString();
 	}
 
-	public void buildScanToken() {
-		add1(STR."public \{lang}Token scanToken() {");
+	protected void buildScanToken() {
+		add1(STR."public \{options.lang()}Token scanToken() {");
 			add2("resetTokenContext();");
 			add2("switch (ch) {");
 				add3("case EOF_CHAR:                  return EOF.newToken();");
@@ -131,22 +124,10 @@ public class LexerBuilder extends ClassBuilderBase {
 
 	}
 
-	public void buildFileHeader() {
-		add(STR."package \{packageName};");
-		addEmptyLine();
-		add(STR."import TODO;");
-		addEmptyLine();
-		add(STR."public class \{lang}Lexer extends CodeReaderBase {");
-	}
-
-	public void buildFileFooter() {
-		add("}");
-	}
-
 	@Getter @Setter @Accessors(fluent = true, chain = true)
 	@NoArgsConstructor @AllArgsConstructor
 	public static class CharNode {
-		String lexeme;
-		String kind;
+		String lexeme;  // char sequence
+		String kind;    // token kind
 	}
 }

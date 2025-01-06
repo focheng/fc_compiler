@@ -10,6 +10,7 @@ import java.util.Map;
  * Map between character and lexer.
  * @author FC
  */
+@Deprecated
 public class LexerMapper {
 	@Getter @Setter
 	protected LexerWithCodeReader defaultLexer;

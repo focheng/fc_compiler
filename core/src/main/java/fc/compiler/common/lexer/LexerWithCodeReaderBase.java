@@ -16,6 +16,7 @@ import static fc.compiler.common.token.StringTokenKind.*;
  * Base class for Lexer (Lexical Analyzer).
  * @author FC
  */
+@Deprecated
 @Slf4j @Getter @Setter @Accessors(fluent = true, chain = true)
 public class LexerWithCodeReaderBase implements LexerWithCodeReader {
 	protected LexerMapper mapper;

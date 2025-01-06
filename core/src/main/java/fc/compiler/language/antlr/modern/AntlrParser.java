@@ -4,9 +4,9 @@ import fc.compiler.common.ast.expression.CompositeExpression;
 import fc.compiler.common.ast.Expression;
 import fc.compiler.common.ast.expression.*;
 import fc.compiler.common.ast.expression.Identifier;
-import fc.compiler.common.parser.ParserBase;
-import fc.compiler.common.parser.ParserRegistry;
-import fc.compiler.common.parser.TokenReader;
+import fc.compiler.common.parser.StringTokenParserBase;
+import fc.compiler.common.parser.StringTokenParserRegistry;
+import fc.compiler.common.parser.StringTokenReader;
 import fc.compiler.common.token.StringToken;
 import fc.compiler.language.antlr.ast.*;
 import lombok.extern.slf4j.Slf4j;
@@ -38,15 +38,15 @@ import static fc.compiler.common.token.StringTokenKind.*;
  * @author FC
  */
 @Slf4j
-public class AntlrParser extends ParserBase {
-	public static ParserRegistry initRegistry() {
-		ParserRegistry map = new ParserRegistry();
+public class AntlrParser extends StringTokenParserBase {
+	public static StringTokenParserRegistry initRegistry() {
+		StringTokenParserRegistry map = new StringTokenParserRegistry();
 
 //		map.put(ERROR, ParserBase::ignore);
 
-		map.put(LINE_TERMINATOR, ParserBase::ignore);
-		map.put(WHITE_SPACES, ParserBase::ignore);
-		map.put(LINE_COMMENT, ParserBase::ignore);
+		map.put(LINE_TERMINATOR, StringTokenParserBase::ignore);
+		map.put(WHITE_SPACES, StringTokenParserBase::ignore);
+		map.put(LINE_COMMENT, StringTokenParserBase::ignore);
 
 		map.put(IDENTIFIER, AntlrParser::parsePostfixExpression);
 		map.put(STRING_LITERAL, AntlrParser::parsePostfixExpression);
@@ -58,7 +58,7 @@ public class AntlrParser extends ParserBase {
 		return map;
 	}
 
-	public static AntlrCompilationUnit parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
+	public static AntlrCompilationUnit parseCompilationUnit(StringTokenReader reader, StringTokenParserRegistry registry) {
 		AntlrCompilationUnit unit = new AntlrCompilationUnit();
 		StringToken token = reader.optionalAnyOfAndReturn(AntlrKeywords.LEXER, AntlrKeywords.PARSER);
 		if (token != null)
@@ -70,14 +70,14 @@ public class AntlrParser extends ParserBase {
 		return unit;
 	}
 
-	private static Identifier parseGrammar(TokenReader reader, ParserRegistry registry) {
+	private static Identifier parseGrammar(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.accept(AntlrKeywords.GRAMMAR);
 		Identifier id = parseIdentifier(reader, registry);
 		reader.accept(SEMICOLON);
 		return id;
 	}
 
-	public static List<Rule> parseRules(TokenReader reader, ParserRegistry registry) {
+	public static List<Rule> parseRules(StringTokenReader reader, StringTokenParserRegistry registry) {
 		List<Rule> rules = new ArrayList<>();
 		while (reader.isKindNextTokens(IDENTIFIER, COLON)) {
 			rules.add(parseRule(reader, registry));
@@ -85,7 +85,7 @@ public class AntlrParser extends ParserBase {
 		return rules;
 	}
 
-	public static Rule parseRule(TokenReader reader, ParserRegistry registry) {
+	public static Rule parseRule(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Identifier name = parseIdentifier(reader, registry);
 		reader.accept(COLON);
 		Expression choices = parseAlternativesExpression(reader, registry);
@@ -116,7 +116,7 @@ public class AntlrParser extends ParserBase {
 //			return composite;
 //	}
 
-	public static Expression parseAlternativesExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseAlternativesExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Alternatives alternatives = new Alternatives();
 		List<Expression> children = parseExpressionListOneOrMore(reader, registry,
 				BAR, AntlrParser::parseSequenceExpression);
@@ -124,7 +124,7 @@ public class AntlrParser extends ParserBase {
 		return simplifyRecursively(alternatives);
 	}
 
-	public static Expression parseSequenceExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseSequenceExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Sequence sequence = new Sequence();
 		List<Expression> children = new ArrayList<>();
 		while (reader.isKindAnyOf(IDENTIFIER, LEFT_PAREN, LEFT_BRACKET, LEFT_BRACE, STRING_LITERAL, NUMBER_LITERAL)) {
@@ -134,12 +134,12 @@ public class AntlrParser extends ParserBase {
 		return simplifyRecursively(sequence);
 	}
 
-	public static Expression parsePostfixExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parsePostfixExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Expression expr = parsePrimaryExpression(reader, registry);
 		return quantify(reader, registry, expr);
 	}
 
-	public static Expression quantify(TokenReader reader, ParserRegistry registry,
+	public static Expression quantify(StringTokenReader reader, StringTokenParserRegistry registry,
 	                                  Expression expression) {
 		if (reader.optional(QUESTION)) {
 			return new QuantifiedExpression().quantifierType("?").expression(expression);
@@ -152,7 +152,7 @@ public class AntlrParser extends ParserBase {
 		}
 	}
 
-	public static Expression parsePrimaryExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parsePrimaryExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (reader.isKind(IDENTIFIER)) {
 			return parseIdentifier(reader, registry);
 		} else if (reader.isKind(STRING_LITERAL)) {
@@ -167,7 +167,7 @@ public class AntlrParser extends ParserBase {
 		}
 	}
 
-	public static ParenthesizedExpression parseParenExpression(TokenReader reader, ParserRegistry registry) {
+	public static ParenthesizedExpression parseParenExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.acceptAnyOf(LEFT_PAREN);
 		Expression expr = parseAlternativesExpression(reader, registry);  //
 		reader.acceptAnyOf(RIGHT_PAREN);

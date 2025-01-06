@@ -23,4 +23,12 @@ public class StrUtils {
 		}
 	}
 
+	public static boolean containsLetterOrDigit(CharSequence chars) {
+		for (int i = 0, length = chars.length(); i < length; i++) {
+			char c = chars.charAt(i);
+			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+				return true;
+		}
+		return false;
+	}
 }

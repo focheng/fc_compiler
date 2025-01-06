@@ -21,6 +21,7 @@ import java.util.Map;
  *
  * @author FC
  */
+@Deprecated
 public interface StringTokenKind {
 	public boolean is(String kindName);
 

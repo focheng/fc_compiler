@@ -1,0 +1,67 @@
+package ${packageName};
+
+import fc.compiler.common.ast.Expression;
+import fc.compiler.common.ast.expression.*;
+import fc.compiler.language.${lang}.ast.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static ${packageName}.${lang}TokenKind.*;
+import static ${packageName}.${lang}TokenKindTag.*;
+
+/**
+ * @author FC
+ */
+public class ${lang}Parser {
+	protected ${lang}Lexer lexer;
+	protected ${lang}Token token;
+
+	public ${lang}Parser(${lang}Lexer lexer) {
+		this.lexer = lexer;
+		nextToken();
+	}
+
+${parseMethods}
+
+	// -- token stream --
+
+	${lang}Token nextToken() {
+		do {
+			token = lexer.scanToken();
+		} while (token.kind() == WHITE_SPACES
+				|| token.kind() == NEW_LINE
+				|| token.kind().tag() == COMMENT);
+		return token;
+	}
+
+	${lang}Token peekToken() {
+		token = lexer.scanToken();
+		return token;
+	}
+
+	boolean optionalToken(${lang}TokenKind expected) {
+		boolean accepted = token.kind() == expected;
+		if (accepted)
+			nextToken();
+		return accepted;
+	}
+
+	boolean acceptToken(${lang}TokenKind expected) {
+		boolean accepted = token.kind() == expected;
+		if (accepted)
+			nextToken();
+		else
+			syntaxError("Token " + expected + " is expected");
+		return accepted;
+	}
+
+	private void syntaxError(String hint) {
+		logError(hint);
+		nextToken();
+	}
+
+	private void logError(String hint) {
+		System.out.println("syntax error: unsupported token " + token + " " + hint);
+	}
+}

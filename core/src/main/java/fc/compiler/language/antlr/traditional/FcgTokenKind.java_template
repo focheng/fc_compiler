@@ -1,0 +1,61 @@
+package ${packageName};
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static ${packageName}.${lang}TokenKindTag.*;
+
+/**
+ * @author FC
+ */
+@Getter @Accessors(fluent = true, chain = true)
+@NoArgsConstructor
+public enum ${lang}TokenKind {
+${body}
+	;
+
+	private String lexeme;
+	private ${lang}TokenKindTag tag;
+
+	${lang}TokenKind(String lexeme) {
+		this.lexeme = lexeme;
+	}
+
+	${lang}TokenKind(String lexeme, ${lang}TokenKindTag tag) {
+		this.lexeme = lexeme;
+		this.tag = tag;
+	}
+
+	public ${lang}Token newToken() {
+		return new ${lang}Token(this, this.lexeme);
+	}
+
+	public ${lang}Token newToken(String lexeme) {
+		return new ${lang}Token(this, lexeme);
+	}
+
+	static Map<String, ${lang}TokenKind> keywords = new HashMap<>();
+	static {
+		for (${lang}TokenKind kind : values()) {
+			if (kind.tag == KEYWORD) {
+				keywords.put(kind.lexeme, kind);
+			}
+		}
+	}
+
+	public static ${lang}TokenKind findKeyword(String lexeme) {
+		return keywords.get(lexeme);
+	}
+
+	public boolean isAnyOf(${lang}TokenKind... kinds) {
+		for (${lang}TokenKind kind : kinds) {
+			if (this == kind)
+				return true;
+		}
+		return false;
+	}
+}

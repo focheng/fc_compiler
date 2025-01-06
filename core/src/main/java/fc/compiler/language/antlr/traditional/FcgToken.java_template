@@ -1,0 +1,30 @@
+package ${packageName};
+
+import fc.compiler.common.token.TokenBase;
+
+/**
+ * @author FC
+ */
+public class ${lang}Token extends TokenBase<${lang}TokenKind> {
+
+	public ${lang}Token(${lang}TokenKind kind, String lexeme) {
+		this.kind = kind;
+		this.lexeme = lexeme;
+	}
+
+	@Override
+	public String toString() {
+		if (kind == ${lang}TokenKind.NEW_LINE) {
+			return kind.name() + "('\\n')";
+		} else if (kind.tag() == ${lang}TokenKindTag.KEYWORD) {
+			return kind.name();
+		} else if (lexeme == null) {
+			if (kind.lexeme() == null)
+				return kind.name();
+			else
+				return kind.name() + "(" + kind.lexeme() + ")";
+		}
+
+		return kind.name() + "(" + lexeme + ")";
+	}
+}

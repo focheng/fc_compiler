@@ -1,0 +1,164 @@
+**********************************************************************
+*     PLI test file for FC Compiler                                  *
+**********************************************************************
+ PLITEST: PROCEDURE OPTIONS(MAIN);                                      00010023
+                                                                        00020002
+ %INCLUDE SYSLIB(CSRBPPLI);                                             00020122
+
+ /*================================================================
+  * 		Data Declaration
+  *================================================================*/
+ /* string variable */
+ DCL programVersion	CHAR(10) INIT('v1.0.0');
+ DCL programDescription	CHAR(30) INIT('Shakespeare''s "Hamlet"');
+ DCL a CHAR(4) NONVARYING INIT( ('abc' || '00'x) );
+
+ /* 1-dimensional ARRAY of 8 elements, 
+    each one a fixed-point decimal element of 3 digits. */
+ DECLARE list FIXED DEC(3) dimension(8); 
+ /* a 2-dimensional array of 8 fixed-point decimal elements */
+ declare table (4,2) fixed decimal (3);
+ 
+ /*================================================================
+  * 		Type Definition
+  *================================================================*/
+ define alias Name char(31) varying;
+ dcl Employee_Name type Name;
+ define ordinal Intensity ( Low,  /* is 0, since VALUE is omitted */
+			    Medium value(2),
+			    High  /* is 3, since VALUE is omitted */
+			   );
+ dcl level ordinal Intensity;
+
+ define structure
+   1 child,
+     2 parent handle parent,
+     2 next_child handle child,
+     2 child_data fixed bin(31);
+                                                                        00020222
+     /* INITs */                                                        00021013
+ DCL M INIT(512) FIXED BIN(31);                                         00022035
+ DCL N INIT(512) FIXED BIN(31);                                         00023035
+ DCL P INIT(512) FIXED BIN(31);                                         00024035
+                                                                        00025013
+     /* Arrays */                                                       00026013
+ DCL A (M,N) BIN FIXED(31);           /* First array                 */ 00029113
+*DCL B (N,P) BIN FIXED(31);           /* Second array                */ 00029213
+*DCL C (M,P) BIN FIXED(31);           /* Product of first and second */ 00029313
+*DCL KELEMENT_SIZE INIT(4) FIXED BIN(31); /* Size of an element of an   00029416
+*                                        array. This value is tied      00029513
+*                                        directly to the data type of   00029613
+*                                        the three arrays (ie. FIXED(31)00029713
+*                                        is 4 bytes                  */ 00029813
+*                                                                       00029913
+*    /* Indices */                                                      00030013
+*DCL I FIXED BIN(31),                                                   00031013
+*    J FIXED BIN(31),                                                   00031113
+*    K FIXED BIN(31);                                                   00031213
+*                                                                       00032013
+*    /* Others */                                                       00037013
+*DCL RC FIXED BIN(31);                                                  00039013
+*DCL RSN FIXED BIN(31);                                                 00039113
+*                                                                       00390108
+*                                                                       00391808
+*    /* Initialize the first two arrays such that each element          00411013
+*       equals the sum of the indices for that element (eg.             00412013
+*       A(4,10) = 14 */                                                 00413013
+*                                                                       00414013
+*CALL CSRIRP (A(1,1), M*N*KELEMENT_SIZE, CSR_FORWARD,                   00415013
+*        KELEMENT_SIZE*N,                                               00416013
+*        0,                                                             00417013
+*        20,                                                            00418013
+*        RC,                                                            00419013
+*        RSN);                                                          00419113
+*DO I = 1 TO M;                                                         00421213
+*  DO J = 1 TO N;                                                       00421313
+*    A(I,J) = I + J;                                                    00421413
+*  END;                                                                 00421513
+*END;                                                                   00421613
+*                                                                       00421713
+*CALL CSRRRP (A(1,1), M*N*KELEMENT_SIZE,                                00422313
+*        RC,                                                            00422513
+*        RSN);                                                          00422613
+*                                                                       00424513
+*    /* Multiply the two arrays together */                             00424613
+*                                                                       00424713
+*CALL CSRIRP (A(1,1), M*N*KELEMENT_SIZE, CSR_FORWARD,                   00424813
+*        KELEMENT_SIZE*N,                                               00424913
+*        0,                                                             00425013
+*        20,                                                            00425133
+*        RC,                                                            00425213
+*        RSN);                                                          00425313
+*DO I = 1 TO M;                                                         00427413
+*  DO J = 1 TO P;                                                       00427513
+*    C(I,J) = 0;                                                        00427613
+*    DO K = 1 TO N;                                                     00427713
+*      C(I,J) = C(I,J) + A(I,K) * B(K,J);                               00427813
+*    END;                                                               00427913
+*  END;                                                                 00428013
+*END;                                                                   00428113
+*                                                                       00428213
+*CALL CSRRRP (A(1,1), M*N*KELEMENT_SIZE,                                00428313
+*        RC,                                                            00428513
+*        RSN);                                                          00428613
+
+ beginBlock: begin;
+ end beginBlock;
+
+ /****************** IF Statement *******************************/
+ if A = B then
+   C = D;
+
+ if A = B then
+   C = D;
+ else
+   C = E;
+
+ /****************** SELECT Statement *******************************/
+ select (E);
+   when (E1,E2,E3) call procedureE123;
+   when (E4,E5)  call procedureE45;
+   otherwise call procedureOtherwise;
+ end;
+
+ /****************** DO Statement ***********************************/
+ /* basic repetitions */
+ /* do Name = 'Tom', 'Dick', 'Harry' */
+ do I = 1 to 10 by 2;
+   A(I) = I;
+ end;
+
+ /* DO with WHILE, UNTIL */
+ do while (A=B);
+ end;
+ do until (A=B); 
+ end;
+ do while(A=B) until(X=10);
+ end;
+ /* executes ten times while C(I) is less than zero, 
+    and then (provided that A is equal to B) once more: */
+ do I = 1 to 10 while (C(I)<0), 11 while (A = B);
+ /* very useful when there is no value after the terminating value */
+ do i = 2147483641 upthru 2147483647; 
+ end;
+ do level = High downthru Low;
+ end;
+ do I=1 repeat 2*I until(I=256);
+ end;
+	 
+ /****************** ON Statement ***********************************/
+ on error
+ begin;
+   display 'error happens';
+ end;
+ on FINISH system;
+ on ANYCONDITION call Handle_all_others;
+
+ /****************** Expression ***********************************/
+ declare Result bit(3),
+ A fixed decimal(1),
+ B fixed binary (3),
+ C character(2), D bit(4);
+ Result = A + B**2 < C & D;	/* (((A + (B**2)) < C) & D) */
+
+ END PLITEST;                                                           01080024

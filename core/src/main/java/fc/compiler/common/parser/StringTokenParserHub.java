@@ -6,12 +6,13 @@ import fc.compiler.common.ast.AstNode;
  * Parser hub will dispatch registered parser to the given token kind.
  * @author FC
  */
+@Deprecated
 @FunctionalInterface
-public interface ParserHub /*extends Parser*/ {
+public interface StringTokenParserHub /*extends StringTokenParser*/ {
 //	public Parser get(String tokenKind);
 //	public Parser put(String tokenKind, Parser parser);
 
-	AstNode parse(TokenReader reader, ParserRegistry registry);
+	AstNode parse(StringTokenReader reader, StringTokenParserRegistry registry);
 //	{
 //		Token token = reader.token();
 //		Parser parser = registry.get(token.kind());
@@ -22,5 +23,5 @@ public interface ParserHub /*extends Parser*/ {
 //		return null;
 //	}
 
-	default AstNode parse(TokenReader reader) { return parse(reader, null); }
+	default AstNode parse(StringTokenReader reader) { return parse(reader, null); }
 }

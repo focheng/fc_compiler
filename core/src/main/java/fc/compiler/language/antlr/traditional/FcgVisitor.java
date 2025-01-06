@@ -98,7 +98,7 @@ public class FcgVisitor<P> implements AstNodeVisitor<Void, AstNode, P> {
 	 * "COMMA", "PROGRAM_ID". except "IDENTIFIER"
 	 */
 	protected boolean isLexerRule(String ruleName) {
-		return StrUtils.isAllUpperCase(ruleName) && !"IDENTIFIER".equals(ruleName);
+		return StrUtils.isAllUpperCase(ruleName) /*&& !"IDENTIFIER".equals(ruleName)*/;
 	}
 
 }

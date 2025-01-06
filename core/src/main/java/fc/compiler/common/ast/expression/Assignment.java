@@ -15,9 +15,16 @@ import lombok.experimental.Accessors;
 public class Assignment extends ExpressionBase {
 	protected Expression variable;
 	protected Expression expression;
+	protected String operator;
 
 	public Assignment(Expression lhs, Expression rhs) {
 		this.variable = lhs;
 		this.expression = rhs;
+	}
+
+	public Assignment(Expression lhs, Expression rhs, String operator) {
+		this.variable = lhs;
+		this.expression = rhs;
+		this.operator = operator;
 	}
 }

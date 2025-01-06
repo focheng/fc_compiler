@@ -2,8 +2,8 @@ package fc.compiler.language.antlr;
 
 import fc.compiler.common.ast.AstNode;
 import fc.compiler.common.lexer.CodeReaderBase;
-import fc.compiler.common.parser.ParserHub;
-import fc.compiler.common.parser.TokenReader;
+import fc.compiler.common.parser.StringTokenParserHub;
+import fc.compiler.common.parser.StringTokenReader;
 import fc.compiler.language.antlr.ast.AntlrCompilationUnit;
 import fc.compiler.language.antlr.modern.AntlrLexerWithCodeReader;
 import fc.compiler.language.antlr.modern.AntlrParser;
@@ -29,10 +29,10 @@ public class AntlrParserTest {
 	public static final String CODE_SINGLE = "grammar Cobol85;\n" +
 			"identificationDivision : (IDENTIFICATION | ID) DIVISION DOT_FS programIdParagraph identificationDivisionBody* ;";
 
-	protected AstNode codeToAst(String code, ParserHub parser) {
+	protected AstNode codeToAst(String code, StringTokenParserHub parser) {
 		CodeReaderBase reader = new CodeReaderBase(code.toCharArray());
 		reader.onStartToken();
-		TokenReader tokenReader = new TokenReader(new AntlrLexerWithCodeReader(), reader);
+		StringTokenReader tokenReader = new StringTokenReader(new AntlrLexerWithCodeReader(), reader);
 		return parser.parse(tokenReader, AntlrParser.initRegistry());
 	}
 
@@ -52,7 +52,7 @@ public class AntlrParserTest {
 	}
 
 	public static AntlrCompilationUnit parse(String code) {
-		TokenReader tokenReader = new TokenReader(new AntlrLexerWithCodeReader(), new CodeReaderBase(code.toCharArray()));
+		StringTokenReader tokenReader = new StringTokenReader(new AntlrLexerWithCodeReader(), new CodeReaderBase(code.toCharArray()));
 		AntlrCompilationUnit unit = AntlrParser.parseCompilationUnit(tokenReader, AntlrParser.initRegistry());
 		return unit;
 	}

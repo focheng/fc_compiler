@@ -3,6 +3,7 @@ package fc.compiler.common.lexer;
 /**
  * @author FC
  */
+@Deprecated
 public class Constants {
 	public static final char EOF = 0x1A;    // end of input buffer
 

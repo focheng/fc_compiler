@@ -171,7 +171,7 @@ public class JavaLexerWithCodeReader extends LexerWithCodeReaderBase {
 
 
 	public static StringToken scanDot(CodeReaderBase reader) {
-		if (reader.optionalChar("...")) {
+		if (reader.optionalSequentialChars("...")) {
 			return new StringToken(ELLIPSIS, "...", reader.position);
 		} else {
 			reader.nextChar();

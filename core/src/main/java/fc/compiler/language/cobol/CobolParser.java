@@ -7,9 +7,9 @@ import fc.compiler.common.ast.expression.*;
 import fc.compiler.common.ast.expression.Identifier;
 import fc.compiler.common.ast.expression.Literal;
 import fc.compiler.common.ast.statement.*;
-import fc.compiler.common.parser.ParserBase;
-import fc.compiler.common.parser.ParserRegistry;
-import fc.compiler.common.parser.TokenReader;
+import fc.compiler.common.parser.StringTokenParserBase;
+import fc.compiler.common.parser.StringTokenParserRegistry;
+import fc.compiler.common.parser.StringTokenReader;
 import fc.compiler.common.token.StringToken;
 import fc.compiler.language.cobol.ast.CharacterString;
 import fc.compiler.language.cobol.ast.CobolCompilationUnit;
@@ -28,15 +28,15 @@ import static fc.compiler.language.cobol.CobolTokenKind.*;
 
 
 @Slf4j
-public class CobolParser extends ParserBase {
+public class CobolParser extends StringTokenParserBase {
 	CobolCompilerOptions options;
 
-	public static ParserRegistry initRegistry() {
-		ParserRegistry map = new ParserRegistry();
+	public static StringTokenParserRegistry initRegistry() {
+		StringTokenParserRegistry map = new StringTokenParserRegistry();
 
-		map.put(LINE_TERMINATOR, ParserBase::ignore);
-		map.put(WHITE_SPACES, ParserBase::ignore);
-		map.put(LINE_COMMENT, ParserBase::ignore);
+		map.put(LINE_TERMINATOR, StringTokenParserBase::ignore);
+		map.put(WHITE_SPACES, StringTokenParserBase::ignore);
+		map.put(LINE_COMMENT, StringTokenParserBase::ignore);
 
 		map.put(ASSIGN, CobolParser::parseAssignClause);
 
@@ -68,12 +68,12 @@ public class CobolParser extends ParserBase {
 		return map;
 	}
 
-	public static CobolCompilationUnit parseCompilationUnit(TokenReader reader, ParserRegistry registry) {
+	public static CobolCompilationUnit parseCompilationUnit(StringTokenReader reader, StringTokenParserRegistry registry) {
 		List<CobolProgram> list = parsePrograms(reader, registry);
 		return new CobolCompilationUnit().cobolProgramList(list);
 	}
 
-	public static List<CobolProgram> parsePrograms(TokenReader reader, ParserRegistry registry) {
+	public static List<CobolProgram> parsePrograms(StringTokenReader reader, StringTokenParserRegistry registry) {
 		List<CobolProgram> programs = new ArrayList<>();
 		while (true) {
 			if (!isIdDivision(reader))
@@ -83,7 +83,7 @@ public class CobolParser extends ParserBase {
 		return programs;
 	}
 
-	public static CobolProgram parseProgram(TokenReader reader, ParserRegistry registry) {
+	public static CobolProgram parseProgram(StringTokenReader reader, StringTokenParserRegistry registry) {
 		CobolProgram program = new CobolProgram()
 				.idDivision(parseIdDivision(reader, registry))
 				.environmentDivision(parseEnvironmentDivision(reader, registry))
@@ -96,7 +96,7 @@ public class CobolParser extends ParserBase {
 		return program;
 	}
 
-	private static Identifier parseEndProgramStatement(TokenReader reader, ParserRegistry registry) {
+	private static Identifier parseEndProgramStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.isKindNextTokens(END, PROGRAM, IDENTIFIER)) return null;
 
 		reader.accept(END);
@@ -109,7 +109,7 @@ public class CobolParser extends ParserBase {
 	 *              programIdParagraph
 	 *              idDivisionOptionalParagraph*
 	 */
-	public static IdDivision parseIdDivision(TokenReader reader, ParserRegistry registry) {
+	public static IdDivision parseIdDivision(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.acceptAnyOf(IDENTIFICATION, ID);
 		reader.accept(DIVISION);
 		reader.accept(DOT);
@@ -122,13 +122,13 @@ public class CobolParser extends ParserBase {
 		return idDivision;
 	}
 
-	public static boolean isIdDivision(TokenReader reader) {
+	public static boolean isIdDivision(StringTokenReader reader) {
 		return reader.isKindNextTokens(IDENTIFICATION, DIVISION, DOT)
 				|| reader.isKindNextTokens(ID, DIVISION, DOT);
 	}
 
 	/** programIdParagraph: "PROGRAM-ID" "."? program-name [ [ "IS" ] "INITIAL" [ "PROGRAM" ] ] "."? */
-	private static Identifier parseProgramIdParagraph(TokenReader reader, ParserRegistry registry) {
+	private static Identifier parseProgramIdParagraph(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.accept(PROGRAM_ID);
 		reader.optional(DOT);
 		Identifier programName = parseIdentifier(reader, registry);
@@ -136,7 +136,7 @@ public class CobolParser extends ParserBase {
 		return programName;
 	}
 
-	private static void parseIdDivisionOptionalParagraph(TokenReader reader, IdDivision idDivision) {
+	private static void parseIdDivisionOptionalParagraph(StringTokenReader reader, IdDivision idDivision) {
 		for (StringToken token = null; ; ) {
 			token = reader.optionalAnyOfAndReturn(AUTHOR, INSTALLATION, DATE_WRITTEN, DATE_COMPILED, SECURITY);
 			if (token == null) {
@@ -148,7 +148,7 @@ public class CobolParser extends ParserBase {
 
 
 	/** [ "ENVIRONMENT" "DIVISION" "." environment-division-content ] */
-	public static EnvironmentDivision parseEnvironmentDivision(TokenReader reader, ParserRegistry registry) {
+	public static EnvironmentDivision parseEnvironmentDivision(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(ENVIRONMENT, DIVISION, DOT)) return null;
 
 		return new EnvironmentDivision()
@@ -157,7 +157,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	/** configuration-section	=	"CONFIGURATION" "SECTION" "." configuration-section-paragraphs */
-	public static ConfigurationSection parseConfigurationSection(TokenReader reader, ParserRegistry registry) {
+	public static ConfigurationSection parseConfigurationSection(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(CONFIGURATION, SECTION, DOT)) return null;
 
 		ConfigurationSection config = new ConfigurationSection();
@@ -179,7 +179,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	/** input-output-section	=	"INPUT-OUTPUT" "SECTION" "." [ file-control-paragraph ] [ i-o-control-paragraph ] */
-	public static InputOutputSection parseInputOutputSection(TokenReader reader, ParserRegistry registry) {
+	public static InputOutputSection parseInputOutputSection(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(INPUT_OUTPUT, SECTION, DOT)) return null;
 
 		FileControlParagraph fileControlParagraph = parseFileControlParagraph(reader, registry);
@@ -203,7 +203,7 @@ public class CobolParser extends ParserBase {
 	 *     | relativeKeyClause
 	 *     )
 	 */
-	private static FileControlParagraph parseFileControlParagraph(TokenReader reader, ParserRegistry registry) {
+	private static FileControlParagraph parseFileControlParagraph(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(FILE_CONTROL, DOT)) return null;
 
 		List<FileControlEntry> list = parseFileControlEntries(reader, registry);
@@ -211,7 +211,7 @@ public class CobolParser extends ParserBase {
 		return new FileControlParagraph().fileControlEntryList(list);
 	}
 
-	private static List<FileControlEntry> parseFileControlEntries(TokenReader reader, ParserRegistry registry) {
+	private static List<FileControlEntry> parseFileControlEntries(StringTokenReader reader, StringTokenParserRegistry registry) {
 		List<FileControlEntry> list = new ArrayList<>();
 		for (; reader.optional(SELECT); ) {
 			reader.optional(OPTIONAL);
@@ -223,7 +223,7 @@ public class CobolParser extends ParserBase {
 		return list;
 	}
 
-	private static AssignClause parseAssignClause(TokenReader reader, ParserRegistry registry) {
+	private static AssignClause parseAssignClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(ASSIGN)) return null;
 
 		reader.optional(TO);
@@ -231,7 +231,7 @@ public class CobolParser extends ParserBase {
 		return new AssignClause().assignmentName(assignee);
 	}
 
-	private static IoControlParagraph parseIoControlParagraph(TokenReader reader, ParserRegistry registry) {
+	private static IoControlParagraph parseIoControlParagraph(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return null;
 	}
 
@@ -246,7 +246,7 @@ public class CobolParser extends ParserBase {
 	 *      reportSection?
 	 *      programLibrarySection?
 	 */
-	public static DataDivision parseDataDivision(TokenReader reader, ParserRegistry registry) {
+	public static DataDivision parseDataDivision(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(DATA, DIVISION, DOT)) return null;
 
 		return new DataDivision()
@@ -259,14 +259,14 @@ public class CobolParser extends ParserBase {
 	 *      - FILE SECTION '.' [fileDescriptionEntry record-description-entry?]
 	 *      - FILE SECTION '.' sortFileDescriptionEntry?
 	 */
-	public static FileSection parseFileSection(TokenReader reader, ParserRegistry registry) {
+	public static FileSection parseFileSection(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(FILE, SECTION, DOT)) return null;
 
 		return new FileSection();
 	}
 
 	/** [ "WORKING-STORAGE" "SECTION" "." { ( record-description-entry | data-item-description-entry ) }* ] */
-	public static WorkingStorageSection parseWorkingStorageSection(TokenReader reader, ParserRegistry registry) {
+	public static WorkingStorageSection parseWorkingStorageSection(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(WORKING_STORAGE, SECTION, DOT)) {
 			return null;
 		}
@@ -279,7 +279,7 @@ public class CobolParser extends ParserBase {
 	}
 
 	/**  ["LINKAGE" "SECTION" "." { ( record-description-entry | data-item-description-entry ) }* ] */
-	public static LinkageSection parseLinkageSection(TokenReader reader, ParserRegistry registry) {
+	public static LinkageSection parseLinkageSection(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalNextTokens(LINKAGE, SECTION, DOT)) {
 			return null;
 		}
@@ -308,7 +308,7 @@ public class CobolParser extends ParserBase {
 	 *     | recordingModeClause
 	 *     ;
 	 */
-	public static FileDescriptionEntry parseFileDescriptionEntry(TokenReader reader, ParserRegistry registry) {
+	public static FileDescriptionEntry parseFileDescriptionEntry(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(FD)) return null;
 
 		FileDescriptionEntry fdEntry = new FileDescriptionEntry()
@@ -317,7 +317,7 @@ public class CobolParser extends ParserBase {
 		return fdEntry;
 	}
 
-	public static FileDescriptionEntry parseSortFileDescriptionEntry(TokenReader reader, ParserRegistry registry) {
+	public static FileDescriptionEntry parseSortFileDescriptionEntry(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(SD)) return null;
 
 		FileDescriptionEntry fdEntry = new FileDescriptionEntry().isSort(true)
@@ -326,7 +326,7 @@ public class CobolParser extends ParserBase {
 		return fdEntry;
 	}
 
-	public static Statement parseLabelRecordsClause(TokenReader reader, ParserRegistry registry) {
+	public static Statement parseLabelRecordsClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(LABEL)) return null;
 
 		return null;
@@ -340,7 +340,7 @@ public class CobolParser extends ParserBase {
 	 *  defining renaming data-names = "66" data-name renames-clause "."
 	 *  defining condition-names	 = "88" condition-name condition-value-clause "."
 	 */
-	public static DataDescriptionEntry parseDataDescriptionEntry(TokenReader reader, ParserRegistry registry) {
+	public static DataDescriptionEntry parseDataDescriptionEntry(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!acceptLevelNumber(reader)) return null;
 
 		Identifier dataName = parseIdentifier(reader, registry); // includes FILLER
@@ -365,7 +365,7 @@ public class CobolParser extends ParserBase {
 		return variable;
 	}
 
-	private static boolean acceptLevelNumber(TokenReader reader) {
+	private static boolean acceptLevelNumber(StringTokenReader reader) {
 		StringToken levelNumber = reader.token();
 		if (!levelNumber.kind().equals(NUMBER_LITERAL)
 				|| levelNumber.lexeme().length() != 2) {
@@ -390,14 +390,14 @@ public class CobolParser extends ParserBase {
 	/** picture-clause = ( "PICTURE" | "PIC" ) [ "IS" ] picture-string
 	 *  picture-string = currency? (picchar+ repeat?)+ (punctuation (picchar+ repeat?)+)*
 	 */
-	public static DataPictureClause parsePictureClause(TokenReader reader, ParserRegistry registry) {
+	public static DataPictureClause parsePictureClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.acceptAnyOf(PICTURE, PIC);
 		reader.optionalAnyOf(IS);
 		CharacterString picString = parseCharacterString(reader, registry);
 		return new DataPictureClause().picString(picString);
 	}
 
-	public static CharacterString parseCharacterString(TokenReader reader, ParserRegistry registry) {
+	public static CharacterString parseCharacterString(StringTokenReader reader, StringTokenParserRegistry registry) {
 		StringBuilder sb = new StringBuilder();
 		StringToken t = null;
 		while ((t = reader.optionalAnyOfAndReturn(IDENTIFIER, NUMBER_LITERAL, LEFT_PAREN, RIGHT_PAREN)) != null) {
@@ -406,7 +406,7 @@ public class CobolParser extends ParserBase {
 		return new CharacterString().format(sb.toString());
 	}
 
-	public static DataValueClause parseValueClause(TokenReader reader, ParserRegistry registry) {
+	public static DataValueClause parseValueClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (reader.optionalAnyOf(VALUE)) {
 			StringToken t = reader.acceptAnyOfAndReturn(NUMBER_LITERAL, ZERO, ZEROS, ZEROES, SPACE, SPACES);
 			if (t != null) {
@@ -423,7 +423,7 @@ public class CobolParser extends ParserBase {
 	 * procedure-division = "PROCEDURE" "DIVISION" [ "USING" { data-name }+ ] "."
 	 *                      paragraphs
 	 */
-	public static ProcedureDivision parseProcedureDivision(TokenReader reader, ParserRegistry registry) {
+	public static ProcedureDivision parseProcedureDivision(StringTokenReader reader, StringTokenParserRegistry registry) {
 		// ignore tokens until "PROCEDURE" "DIVISION"
 //		while (!reader.isKindNextTokens(PROCEDURE, DIVISION)) {
 //			reader.nextToken();
@@ -446,7 +446,7 @@ public class CobolParser extends ParserBase {
 		return division;
 	}
 
-	public static ProcedureUsingClause parseUsingClause(TokenReader reader, ParserRegistry registry) {
+	public static ProcedureUsingClause parseUsingClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		ProcedureUsingClause procedureUsingClause = new ProcedureUsingClause();
 		while (reader.token().kind() == IDENTIFIER) {
 			procedureUsingClause.procedureParameterList().add(parseIdentifier(reader, registry));
@@ -454,13 +454,13 @@ public class CobolParser extends ParserBase {
 		return procedureUsingClause;
 	}
 
-	public static DisplayClause parseDisplayClause(TokenReader reader, ParserRegistry registry) {
+	public static DisplayClause parseDisplayClause(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.acceptAnyOf(DISPLAY);
 		StringToken token = reader.acceptAnyOfAndReturn(STRING_LITERAL);
 		return new DisplayClause().value(token.lexeme());
 	}
 
-	public static boolean isNewDivision(TokenReader reader) {
+	public static boolean isNewDivision(StringTokenReader reader) {
 		StringToken token1 = reader.peekToken(1);
 		StringToken token2 = reader.peekToken(2);
 		return token2.kind() == DIVISION
@@ -478,7 +478,7 @@ public class CobolParser extends ParserBase {
 	 *                 [ "ELSE"              ( statement+ | "NEXT" "SENTENCE" ) ]
 	 *                 [ "END-IF" ]
 	 */
-	public static IfStatement parseIfStatement(TokenReader reader, ParserRegistry registry) {
+	public static IfStatement parseIfStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(IF)) return null;
 
 		IfStatement ifstmt = new IfStatement()
@@ -509,7 +509,7 @@ public class CobolParser extends ParserBase {
 	 *      | [ "NOT" ] evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ]
 	 * evaluate-value: identifier | literal | arithmetic-expression
 	 */
-	public static EvaluateStatement parseEvaluateStatement(TokenReader reader, ParserRegistry registry) {
+	public static EvaluateStatement parseEvaluateStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(EVALUATE)) return null;
 
 		EvaluateStatement evaluateStatement = new EvaluateStatement();
@@ -524,7 +524,7 @@ public class CobolParser extends ParserBase {
 		return evaluateStatement;
 	}
 
-	private static EvaluateWhenStatement parseEvaluateWhenStatement(TokenReader reader, ParserRegistry registry) {
+	private static EvaluateWhenStatement parseEvaluateWhenStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		EvaluateWhenStatement caseStatement = new EvaluateWhenStatement();
 		if (!reader.optional(OTHER)) {
 			caseStatement.value(parseEvaluatePhrase(reader, registry));
@@ -534,17 +534,17 @@ public class CobolParser extends ParserBase {
 		return caseStatement;
 	}
 
-	private static Expression parseEvaluateSelect(TokenReader reader, ParserRegistry registry) {
+	private static Expression parseEvaluateSelect(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return parseExpression(reader, registry);
 	}
 
-	private static List<Expression> parseEvaluateAlsoSelects(TokenReader reader, ParserRegistry registry) {
+	private static List<Expression> parseEvaluateAlsoSelects(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return parseExpressionListZeroOrMore(reader, registry, ALSO);
 	}
 
 	/** evaluate-phrase:	( "ANY" | conditional-expression | boolean-literal
 	 *      | [ "NOT" ] evaluate-value [ ( "THROUGH" | "THRU" ) evaluate-value ] ) */
-	private static EvaluatePhrase parseEvaluatePhrase(TokenReader reader, ParserRegistry registry) {
+	private static EvaluatePhrase parseEvaluatePhrase(StringTokenReader reader, StringTokenParserRegistry registry) {
 		EvaluatePhrase valuePhrase = new EvaluatePhrase();
 		if (reader.optional(ANY)) {
 			valuePhrase.isAny(true);
@@ -572,7 +572,7 @@ public class CobolParser extends ParserBase {
 		return valuePhrase;
 	}
 
-	private static Expression parseEvaluateValue(TokenReader reader, ParserRegistry registry) {
+	private static Expression parseEvaluateValue(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (reader.isKind(IDENTIFIER)) {
 			return parseIdentifier(reader, registry);
 		} else if (reader.isKindAnyOf(STRING_LITERAL, NUMBER_LITERAL, BOOLEAN_LITERAL)) {
@@ -582,13 +582,13 @@ public class CobolParser extends ParserBase {
 		}
 	}
 
-	public static Statement parseExitStatement(TokenReader reader, ParserRegistry registry) {
+	public static Statement parseExitStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(EXIT)) return null;
 
 		return new ExpressionStatement().expression(Identifier.of("exit"));
 	}
 
-	public static Statement parseStopStatement(TokenReader reader, ParserRegistry registry) {
+	public static Statement parseStopStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(STOP)) return null;
 
 		if (reader.optional(RUN)) {
@@ -599,7 +599,7 @@ public class CobolParser extends ParserBase {
 		return new ExpressionStatement().expression(Identifier.of("stop"));
 	}
 
-	public static ContinueStatement parseContinueStatement(TokenReader reader, ParserRegistry registry) {
+	public static ContinueStatement parseContinueStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(CONTINUE)) return null;
 
 		return new ContinueStatement();
@@ -608,19 +608,19 @@ public class CobolParser extends ParserBase {
 	/** goto-statement: (unconditional-goto | conditional-goto | altered-goto)
 	 * unconditional-goto: 'GO' 'TO'? procedure-name
 	 */
-	public static GotoStatement parseGotoStatement(TokenReader reader, ParserRegistry registry) {
+	public static GotoStatement parseGotoStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(GO)) return null;
 		reader.optionalAnyOf(TO);
 		Identifier label = parseIdentifier(reader, registry);
 		return new GotoStatement().label(label);
 	}
 
-	public static ExpressionStatement parseGoBackStatement(TokenReader reader, ParserRegistry registry) {
+	public static ExpressionStatement parseGoBackStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(GOBACK)) return null;
 		return new ExpressionStatement().expression(Identifier.of("goback"));
 	}
 
-	public static ExpressionStatement parseCallStatement(TokenReader reader, ParserRegistry registry) {
+	public static ExpressionStatement parseCallStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(CALL)) return null;
 
 		FunctionCall call = new FunctionCall();
@@ -662,7 +662,7 @@ public class CobolParser extends ParserBase {
 	 * perform-after-phrase: { "AFTER" ( identifier | index-name )
 	 *      "FROM" ( identifier | index-name | literal ) "BY" ( identifier | literal ) "UNTIL" condition }*
 	 */
-	public static PerformStatement parsePerformStatement(TokenReader reader, ParserRegistry registry) {
+	public static PerformStatement parsePerformStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(PERFORM)) return null;
 
 		PerformStatement stmt = new PerformStatement();
@@ -683,7 +683,7 @@ public class CobolParser extends ParserBase {
 		return stmt;
 	}
 
-	private static boolean outOfLinePhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+	private static boolean outOfLinePhrase(StringTokenReader reader, StringTokenParserRegistry registry, PerformStatement stmt) {
 		if (reader.isKind(IDENTIFIER)) {
 			stmt.procedureName(parseIdentifier(reader, registry));
 			if (varyingOrUntilPhrase(reader, registry, stmt)) { // varying or until
@@ -695,7 +695,7 @@ public class CobolParser extends ParserBase {
 		return false;
 	}
 
-	private static boolean outOfLineThroughPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+	private static boolean outOfLineThroughPhrase(StringTokenReader reader, StringTokenParserRegistry registry, PerformStatement stmt) {
 		if (reader.isKindNextTokens(IDENTIFIER, THROUGH)
 				|| reader.isKindNextTokens(IDENTIFIER, THRU)) {
 			stmt.procedureName(parseIdentifier(reader, registry));
@@ -710,7 +710,7 @@ public class CobolParser extends ParserBase {
 		return false;
 	}
 
-	private static boolean timesPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+	private static boolean timesPhrase(StringTokenReader reader, StringTokenParserRegistry registry, PerformStatement stmt) {
 		if (reader.isKindNextTokens(IDENTIFIER, TIMES)) {
 			stmt.timesExpression(parseIdentifier(reader, registry));
 			reader.accept(TIMES);
@@ -723,7 +723,7 @@ public class CobolParser extends ParserBase {
 		return false;
 	}
 
-	private static boolean varyingOrUntilPhrase(TokenReader reader, ParserRegistry registry, PerformStatement stmt) {
+	private static boolean varyingOrUntilPhrase(StringTokenReader reader, StringTokenParserRegistry registry, PerformStatement stmt) {
 		boolean with = reader.optional(WITH);
 		boolean test = reader.optional(TEST);
 		if (with || test) {
@@ -745,13 +745,13 @@ public class CobolParser extends ParserBase {
 		return false;
 	}
 
-	public static List<Expression> parseArguments(TokenReader reader, ParserRegistry registry) {
+	public static List<Expression> parseArguments(StringTokenReader reader, StringTokenParserRegistry registry) {
 		throw new RuntimeException("Not Implemented");
 	}
 
 	/** move-statement: 'MOVE'                (identifier | literal) 'TO' identifier
 	 *                | 'MOVE' ('CORRESPONDING' | 'CORR') identifier 'TO' identifier */
-	public static ExpressionStatement parseMoveStatement(TokenReader reader, ParserRegistry registry) {
+	public static ExpressionStatement parseMoveStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(MOVE)) return null;
 
 		boolean corresponding = reader.optionalAnyOf(CORRESPONDING, CORR);
@@ -772,7 +772,7 @@ public class CobolParser extends ParserBase {
 	 *     | "SET" { ( identifier | "ADDRESS" "OF" identifier ) }+	"TO" ( identifier | "ADDRESS" "OF" identifier | "NULL" | "NULLS" )
 	 *     | "SET" { index-name }+ ( "UP" "BY" | "DOWN" "BY" ) ( identifier | integer )
 	 */
-	public static SetStatement parseSetStatement(TokenReader reader, ParserRegistry registry) {
+	public static SetStatement parseSetStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(SET)) return null;
 
 		SetStatement stmt = new SetStatement();
@@ -821,7 +821,7 @@ public class CobolParser extends ParserBase {
 	 *      [ "NOT"? "ON"? "SIZE" "ERROR" statement-list ]
 	 *      [ "END-COMPUTE" ]
 	 */
-	public static ExpressionStatement parseComputeStatement(TokenReader reader, ParserRegistry registry) {
+	public static ExpressionStatement parseComputeStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optionalAnyOf(COMPUTE)) return null;
 
 		List<RoundedIdentifier> ids = parseRoundedIdentifiers(reader, registry);
@@ -839,14 +839,14 @@ public class CobolParser extends ParserBase {
 	 * addToGivingStatement:      ( identifier | literal )+ "TO"? ( identifier | literal ) GIVING { identifier "ROUNDED"? }+
 	 * addCorrespondingStatement: ('CORRESPONDING' | 'CORR') identifier "TO" identifier
 	 */
-	public static AddSubtractMultiplyDivideStatement parseAddStatement(TokenReader reader, ParserRegistry registry) {
+	public static AddSubtractMultiplyDivideStatement parseAddStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return parseAddOrSubtractStatement(reader, registry, ADD, TO, END_ADD).operator("+");
 	}
-	public static AddSubtractMultiplyDivideStatement parseSubtractStatement(TokenReader reader, ParserRegistry registry) {
+	public static AddSubtractMultiplyDivideStatement parseSubtractStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return parseAddOrSubtractStatement(reader, registry, SUBTRACT, FROM, END_SUBTRACT).operator("-");
 	}
-	public static AddSubtractMultiplyDivideStatement parseAddOrSubtractStatement(TokenReader reader, ParserRegistry registry,
-	                                                              String kindStart, String kindMiddle, String kindEnd) {
+	public static AddSubtractMultiplyDivideStatement parseAddOrSubtractStatement(StringTokenReader reader, StringTokenParserRegistry registry,
+	                                                                             String kindStart, String kindMiddle, String kindEnd) {
 		if (!reader.optional(kindStart)) return null;
 
 		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
@@ -874,7 +874,7 @@ public class CobolParser extends ParserBase {
 		return stmt;
 	}
 
-	private static void givingOrRegular(TokenReader reader, ParserRegistry registry, AddSubtractMultiplyDivideStatement stmt) {
+	private static void givingOrRegular(StringTokenReader reader, StringTokenParserRegistry registry, AddSubtractMultiplyDivideStatement stmt) {
 		boolean isGiving;
 		Identifier id = parseIdentifier(reader, registry);
 		isGiving = reader.optional(GIVING);
@@ -896,7 +896,7 @@ public class CobolParser extends ParserBase {
 	 * multiplyRegular: { identifier "ROUNDED"? }+
 	 * multiplyGiving:  ( identifier | literal ) "GIVING" { identifier "ROUNDED"? }+
 	 */
-	public static AddSubtractMultiplyDivideStatement parseMultiplyStatement(TokenReader reader, ParserRegistry registry) {
+	public static AddSubtractMultiplyDivideStatement parseMultiplyStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(MULTIPLY)) return null;
 
 		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
@@ -917,7 +917,7 @@ public class CobolParser extends ParserBase {
 	 * divideIntoGivingStatement: 'INTO' (identifier | literal) 'GIVING' {identifier 'ROUNDED'?}+
 	 * divideByGivingStatement:     'BY' (identifier | literal) 'GIVING' {identifier 'ROUNDED'?}+
 	 */
-	public static AddSubtractMultiplyDivideStatement parseDivideStatement(TokenReader reader, ParserRegistry registry) {
+	public static AddSubtractMultiplyDivideStatement parseDivideStatement(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (!reader.optional(DIVIDE)) return null;
 
 		AddSubtractMultiplyDivideStatement stmt = new AddSubtractMultiplyDivideStatement();
@@ -934,7 +934,7 @@ public class CobolParser extends ParserBase {
 		return stmt.operator("/");
 	}
 
-	public static List<RoundedIdentifier> parseRoundedIdentifiers(TokenReader reader, ParserRegistry registry) {
+	public static List<RoundedIdentifier> parseRoundedIdentifiers(StringTokenReader reader, StringTokenParserRegistry registry) {
 		List<RoundedIdentifier> list = new ArrayList<>();
 		while (reader.isKind(IDENTIFIER)) {
 			list.add(parseRoundedIdentifier(reader, registry));
@@ -942,7 +942,7 @@ public class CobolParser extends ParserBase {
 		return list;
 	}
 
-	private static RoundedIdentifier parseRoundedIdentifier(TokenReader reader, ParserRegistry registry) {
+	private static RoundedIdentifier parseRoundedIdentifier(StringTokenReader reader, StringTokenParserRegistry registry) {
 		RoundedIdentifier ri = new RoundedIdentifier();
 		ri.id(parseIdentifier(reader, registry).id());
 		ri.rounded(reader.optional(ROUNDED));
@@ -979,7 +979,7 @@ public class CobolParser extends ParserBase {
 	 * 4. Multiplication and division
 	 * 5. Addition and subtraction
 	 */
-	public static Expression parseArithmeticExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseArithmeticExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		return parseBinaryExpression(reader, registry);
 	}
 
@@ -993,7 +993,7 @@ public class CobolParser extends ParserBase {
 	 * Combined condition:
 	 *
 	 */
-	public static Expression parseConditionalExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseConditionalExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Expression leftOperand = parseUnaryExpression(reader, registry);
 		boolean is = reader.optionalAnyOf(IS, ARE);
 		String operator = parserRationalOperator(reader);
@@ -1011,7 +1011,7 @@ public class CobolParser extends ParserBase {
 	 *         | '<='
 	 *     )
 	 */
-	protected static String parserRationalOperator(TokenReader reader) {
+	protected static String parserRationalOperator(StringTokenReader reader) {
 		String operator = null;
 		if (reader.optionalAnyOf(NOT)) {
 			if (reader.optionalAnyOf(GREATER)) {
@@ -1053,7 +1053,7 @@ public class CobolParser extends ParserBase {
 		return operator;
 	}
 
-	public static Expression parseBinaryExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseBinaryExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		Expression expr = parseUnaryExpression(reader, registry);
 		StringToken t = reader.optionalAnyOfAndReturn(PLUS, MINUS, STAR, SLASH);
 		if (t == null)
@@ -1069,7 +1069,7 @@ public class CobolParser extends ParserBase {
 		return binaryExpression;
 	}
 
-	public static Expression parseUnaryExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseUnaryExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		StringToken token = reader.optionalAnyOfAndReturn(PLUS, MINUS);
 		if (token != null) {
 			return new PrefixUnaryExpression().operator(token.lexeme())
@@ -1079,7 +1079,7 @@ public class CobolParser extends ParserBase {
 		}
 	}
 
-	public static Expression parsePrimaryExpression(TokenReader reader, ParserRegistry registry) {
+	public static Expression parsePrimaryExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		StringToken t = null;
 		Expression expr = null;
 		if (reader.isKind(IDENTIFIER)) {
@@ -1094,14 +1094,14 @@ public class CobolParser extends ParserBase {
 		return expr;
 	}
 
-	public static ParenthesizedExpression parseParenExpression(TokenReader reader, ParserRegistry registry) {
+	public static ParenthesizedExpression parseParenExpression(StringTokenReader reader, StringTokenParserRegistry registry) {
 		reader.acceptAnyOf(LEFT_PAREN);
 		Expression expr = parseArithmeticExpression(reader, registry);  //
 		reader.acceptAnyOf(RIGHT_PAREN);
 		return new ParenthesizedExpression().expression(expr);
 	}
 
-	public static Expression parseIdentifierOrLiteral(TokenReader reader, ParserRegistry registry) {
+	public static Expression parseIdentifierOrLiteral(StringTokenReader reader, StringTokenParserRegistry registry) {
 		if (reader.isKind(IDENTIFIER)) {
 			return parseIdentifier(reader, registry);
 		} else if (reader.isKindNextTokens(NUMBER_LITERAL, STRING_LITERAL)) {

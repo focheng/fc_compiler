@@ -2,6 +2,7 @@ package fc.compiler.common.token;
 
 import fc.compiler.common.lexer.Position;
 
+@Deprecated
 public class StringToken extends TokenBase<String> {
 	public StringToken(String kind, Position position) {
 		this.kind = kind;

@@ -1,50 +1,15 @@
-/*
-* Copyright (C) 2017, Ulrich Wolffgang <ulrich.wolffgang@proleap.io>
-* All rights reserved.
-*
-* This software may be modified and distributed under the terms
-* of the MIT license. See the LICENSE file for details.
-*/
-
-/*
-* COBOL 85 Grammar for ANTLR4
-*
-* This is a COBOL 85 grammar, which is part of the COBOL parser at
-* https://github.com/uwol/cobol85parser.
-*
-* The grammar passes the NIST test suite and has successfully been applied to
-* numerous COBOL files from banking and insurance. To be used in conjunction
-* with the provided preprocessor, which executes COPY and REPLACE statements.
-*/
-
-// $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
-// $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
-
 grammar Cobol85 [case_sensitive=false];
 
-startRule
-    : compilationUnit EOF
-    ;
+compilationUnit : program+ ;
+program : idDivision environmentDivision? dataDivision? procedureDivision? program* endProgramStatement?  ;
+endProgramStatement: END PROGRAM programName '.' ;
+programName : IDENTIFIER ;
 
-compilationUnit
-    : programUnit+
-    ;
+// --- identification division -----------------------------------------{{{1
 
-programUnit
-    : identificationDivision environmentDivision? dataDivision? procedureDivision? programUnit* endProgramStatement?
-    ;
+idDivision : (IDENTIFICATION | ID) DIVISION '.' programIdParagraph idDivisionBody* ;
 
-endProgramStatement
-    : END PROGRAM programName DOT_FS
-    ;
-
-// --- identification division --------------------------------------------------------------------
-
-identificationDivision
-    : (IDENTIFICATION | ID) DIVISION DOT_FS programIdParagraph identificationDivisionBody*
-    ;
-
-identificationDivisionBody
+idDivisionBody
     : authorParagraph
     | installationParagraph
     | dateWrittenParagraph
@@ -55,11 +20,7 @@ identificationDivisionBody
 
 // - program id paragraph ----------------------------------
 
-programIdParagraph
-    : PROGRAM_ID DOT_FS programName (
-        IS? (COMMON | INITIAL | LIBRARY | DEFINITION | RECURSIVE) PROGRAM?
-    )? DOT_FS? commentEntry?
-    ;
+programIdParagraph : PROGRAM_ID '.' programName '.' ;
 
 // - author paragraph ----------------------------------
 
@@ -97,12 +58,9 @@ remarksParagraph
     : REMARKS DOT_FS commentEntry?
     ;
 
-// --- environment division --------------------------------------------------------------------
+// --- environment division --------------------------------------------{{{1
 
-environmentDivision
-    : ENVIRONMENT DIVISION DOT_FS environmentDivisionBody*
-    ;
-
+environmentDivision : ENVIRONMENT DIVISION '.' environmentDivisionBody* ;
 environmentDivisionBody
     : configurationSection
     | specialNamesParagraph
@@ -439,11 +397,9 @@ commitmentControlClause
     : COMMITMENT CONTROL FOR? fileName
     ;
 
-// --- data division --------------------------------------------------------------------
+// --- data division ---------------------------------------------------{{{1
 
-dataDivision
-    : DATA DIVISION DOT_FS dataDivisionSection*
-    ;
+dataDivision : DATA DIVISION '.' dataDivisionSection* ;
 
 dataDivisionSection
     : fileSection
@@ -1372,10 +1328,9 @@ dataWithLowerBoundsClause
     : WITH? LOWER BOUNDS
     ;
 
-// --- procedure division --------------------------------------------------------------------
+// --- procedure division ----------------------------------------------{{{1
 
-procedureDivision
-    : PROCEDURE DIVISION procedureDivisionUsingClause? procedureDivisionGivingClause? DOT_FS procedureDeclaratives? procedureDivisionBody
+procedureDivision : PROCEDURE DIVISION procedureDivisionUsingClause? procedureDivisionGivingClause? DOT_FS procedureDeclaratives? procedureDivisionBody
     ;
 
 procedureDivisionUsingClause
@@ -1422,30 +1377,17 @@ procedureSectionHeader
     : sectionName SECTION integerLiteral?
     ;
 
-procedureDivisionBody
-    : paragraphs procedureSection*
-    ;
+procedureDivisionBody : paragraphs procedureSection* ;
 
 // -- procedure section ----------------------------------
 
-procedureSection
-    : procedureSectionHeader DOT_FS paragraphs
-    ;
+procedureSection : procedureSectionHeader DOT_FS paragraphs ;
+paragraphs : sentence* paragraph* ;
+paragraph : paragraphName '.' (alteredGoTo | sentence*) ;
+sentence : statement* '.' ;
 
-paragraphs
-    : sentence* paragraph*
-    ;
-
-paragraph
-    : paragraphName DOT_FS (alteredGoTo | sentence*)
-    ;
-
-sentence
-    : statement* DOT_FS
-    ;
-
-statement
-    : acceptStatement
+statement : 
+      acceptStatement
     | addStatement
     | alterStatement
     | callStatement
@@ -1867,8 +1809,7 @@ exhibitOperand
 
 // exit statement
 
-exitStatement
-    : EXIT PROGRAM?
+exitStatement : EXIT PROGRAM?
     ;
 
 // generate statement
@@ -1900,9 +1841,7 @@ goToDependingOnStatement
 
 // if statement
 
-ifStatement
-    : IF condition ifThen ifElse? END_IF?
-    ;
+ifStatement : IF condition ifThen ifElse? END_IF?  ;
 
 ifThen
     : THEN? (NEXT SENTENCE | statement*)
@@ -2053,18 +1992,13 @@ mergeGiving
 
 // move statement
 
-moveStatement
-    : MOVE ALL? (moveToStatement | moveCorrespondingToStatement)
-    ;
+moveStatement : MOVE ALL? (moveToStatement | moveCorrespondingToStatement) ;
 
 moveToStatement
     : moveToSendingArea TO identifier+
     ;
 
-moveToSendingArea
-    : identifier
-    | literal
-    ;
+moveToSendingArea : IDENTIFIER | LITERAL ;
 
 moveCorrespondingToStatement
     : (CORRESPONDING | CORR) moveCorrespondingToSendingArea TO identifier+
@@ -3256,7 +3190,7 @@ commentEntry
     : COMMENTENTRYLINE+
     ;
 
-// lexer rules --------------------------------------------------------------------------------
+// lexer rules ---------------------------------------------------------{{{1
 // default rule for new line
 // NEWLINE : '\r'? '\n' -> channel(HIDDEN) ;
 // default rule for white space

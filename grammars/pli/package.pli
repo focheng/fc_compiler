@@ -1,0 +1,29 @@
+*Process S A(F) LANGLVL(SAA2) LIMITS(EXTNAME(31)) NUMBER;
+ Package_Demo: Package exports (Factorial);
+ /***********************************************/
+ /* Common Data */
+ /***********************************************/
+ dcl N fixed bin(15);
+ dcl Message char(*) value(’The factorial of ’);
+ /***********************************************/
+ /* Main Program */
+ /***********************************************/
+ Factorial: proc options (main);
+ dcl Result fixed bin(31);
+ put skip list(’Please enter a number whose factorial ’ ||
+ ’must be computed ’);
+ get list(N);
+ Result = Compute_factorial(n);
+ put list(Message || trim(N) || ’ is ’ || trim(Result));
+ end Factorial;
+ /***********************************************/
+ /* Subroutine */
+ /***********************************************/
+ Compute_factorial: proc (Input) recursive returns (fixed bin(31));
+ dcl Input fixed bin(15);
+ if Input <= 1 then
+ return(1);
+ else
+ return( Input*Compute_factorial(Input-1) );
+ end Compute_factorial;
+ end Package_Demo;

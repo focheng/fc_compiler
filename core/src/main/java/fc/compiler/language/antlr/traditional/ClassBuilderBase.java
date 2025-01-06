@@ -12,13 +12,13 @@ import java.util.List;
  */
 @Accessors(fluent = true, chain = true)
 public class ClassBuilderBase {
-	@Getter @Setter protected String packageName;
-	@Getter @Setter protected String lang;
-	@Getter @Setter protected String indentUnit = "\t";
+	@Setter protected CodeGeneratorOptions options;
 
 	protected StringBuilder sb = new StringBuilder();
 	protected int indentCount = 0;
 	protected List<String> indentCache = new ArrayList<>();
+
+	protected void addPackage()       { add(STR."package \{options.packageName()};"); }
 
 	protected void add(String line)   { sb.append(getIndent()).append(line).append("\n"); }
 	protected void add1(String line)  { sb.append(getIndent()).append("\t").append(line).append("\n"); }
@@ -38,7 +38,7 @@ public class ClassBuilderBase {
 	protected void increaseIndent() {
 		this.indentCount++;
 		if (indentCount > indentCache.size())
-			indentCache.add(indentUnit.repeat(indentCount));
+			indentCache.add(options.indentUnit().repeat(indentCount));
 	}
 
 	protected void decreaseIndent() {

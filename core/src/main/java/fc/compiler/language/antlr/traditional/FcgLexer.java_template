@@ -1,0 +1,71 @@
+package ${packageName};
+
+import fc.compiler.common.lexer.CodeReaderBase;
+import fc.compiler.common.lexer.Lexer;
+import fc.compiler.common.lexer.LexerBase;
+
+/**
+ * Lexer for Antlr-like xml.
+ * @author FC
+ */
+public class ${lang}Lexer extends LexerBase<${lang}TokenKind, ${lang}Token> {
+
+	public ${lang}Lexer(String code) {
+		super(code);
+	}
+
+${scanMethods}
+
+	protected boolean isIdentifierStart() {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_';
+	}
+
+	protected boolean isIdentifierRest() {
+		return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
+				|| ('0' <= ch && ch <= '9');
+	}
+
+	protected ${lang}Token scanIdentifier() {
+		do {
+			nextChar();
+		} while (isIdentifierRest());
+
+		String lexeme = lexeme();
+		${lang}TokenKind kind = ${lang}TokenKind.findKeyword(lexeme);
+		if (kind != null) {
+			return kind.newToken(lexeme);
+		}
+
+		return ${lang}TokenKind.IDENTIFIER.newToken(lexeme);
+	}
+
+	protected boolean isNumberStart() {
+		return Character.isDigit(ch);
+	}
+
+	protected boolean isNumberRest() {
+		return Character.isDigit(ch);
+	}
+
+
+	protected ${lang}Token scanWhiteSpaces() {
+		do {
+			nextChar();
+		} while (isWhiteSpace());
+		return ${lang}TokenKind.WHITE_SPACES.newToken(lexeme());
+	}
+
+	protected ${lang}Token scanNewLine() {
+		optionalChar(CR);
+		optionalChar(LF);
+		lineNo++;
+		lineStartPosition = bp;
+		return ${lang}TokenKind.NEW_LINE.newToken(lexeme());
+	}
+
+	protected ${lang}Token lexError(String hint) {
+		logError(hint);
+		nextChar();
+		return ${lang}TokenKind.ERROR_TOKEN.newToken();
+	}
+}

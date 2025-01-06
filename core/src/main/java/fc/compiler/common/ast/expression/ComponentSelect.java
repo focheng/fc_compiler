@@ -17,6 +17,7 @@ import lombok.experimental.Accessors;
  */
 @Getter @Setter @Accessors(fluent = true) @ToString(callSuper = true)
 public class ComponentSelect extends ExpressionBase {
-	Expression expression;  // could be also a MemberSelect for nesting
+	Expression expression;  // could be also a nested ComponentSelect expression
 	Identifier identifier;
+	String selector;
 }

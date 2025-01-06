@@ -33,10 +33,11 @@ import java.util.stream.Collectors;
  * @author FC
  */
 @Accessors(fluent = true, chain = true)
-public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.UniqueTokenKinds> {
-	// token kind -> rule list
-	private final Map<String, UniqueTokenKinds> rule2UniqueTokenKinds = new HashMap<>();
-	@Setter private TokenKindBuilder tokenKindBuilder;
+public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.FirstTokenKinds> {
+	// sequence of first token kinds -> rule
+	// rule -> list of sequence of first token kinds
+	private final Map<String, FirstTokenKinds> rule2UniqueTokenKinds = new HashMap<>();
+	@Getter @Setter private TokenKindBuilder tokenKindBuilder;
 
 	/**
 	 * <kind1, quantifier, next> & <kind2, quantifier, next> & <kind3, quantifier, next>
@@ -46,37 +47,37 @@ public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.Uniq
 	@EqualsAndHashCode
 	public static class KindLinkNode {
 		@EqualsAndHashCode.Include
-		private String kind;
-		private Quantifier quantifier;
+		private String name;
+		private Quantifier quantifier = Quantifier.EXACTLY_ONE;
 		private KindLinkNode next;
 
-		public KindLinkNode(String kind) {
-			this.kind = kind;
+		public KindLinkNode(String name) {
+			this.name = name;
 		}
 	}
 
-	public static class UniqueTokenKinds {
-		Set<KindLinkNode> links = new LinkedHashSet<>();
+	public static class FirstTokenKinds {
+		List<KindLinkNode> links = new ArrayList<>();
 
 		public void add(String kind) {
 			if (kind != null)
 				links.add(new KindLinkNode(kind));
 		}
 
-		public void addAll(UniqueTokenKinds another) {
+		public void addAll(FirstTokenKinds another) {
 			if (another != null)
 				links.addAll(another.links);
 		}
 
 		@Override
 		public String toString() {
-			return links.stream().map(link -> link.kind).collect(Collectors.joining(", "));
+			return links.stream().map(link -> link.name).collect(Collectors.joining(", "));
 		}
 	}
 
-	public UniqueTokenKinds getUniqueTokenKinds(String ruleName) {
+	public FirstTokenKinds getUniqueTokenKinds(String ruleName) {
 		if (!rule2UniqueTokenKinds.containsKey(ruleName)) {
-			UniqueTokenKinds uniqueTokenKinds = new UniqueTokenKinds();
+			FirstTokenKinds uniqueTokenKinds = new FirstTokenKinds();
 			visit(rules.get(ruleName), uniqueTokenKinds);
 			rule2UniqueTokenKinds.put(ruleName, uniqueTokenKinds);
 		}
@@ -84,13 +85,29 @@ public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.Uniq
 		return rule2UniqueTokenKinds.get(ruleName);
 	}
 
+	public FirstTokenKinds firstTokenKind(Expression expression) {
+		FirstTokenKinds kinds = new FirstTokenKinds();
+		visit(expression, kinds);
+		return kinds;
+	}
+
+
+//	public void visit(Rule rule, FirstTokenKinds nil) {
+//		String ruleName = rule.name().id();
+//		if (!rule2UniqueTokenKinds.containsKey(ruleName)) {
+//			FirstTokenKinds uniqueTokenKinds = new FirstTokenKinds();
+//			visit(rule.expression(), uniqueTokenKinds);
+//			rule2UniqueTokenKinds.put(ruleName, uniqueTokenKinds);
+//		}
+//	}
+
 	@Override
-	public void visit(Alternatives alternatives, UniqueTokenKinds kinds) {
+	public void visit(Alternatives alternatives, FirstTokenKinds kinds) {
 		alternatives.children().forEach(expr -> visit(expr, kinds));
 	}
 
 	@Override
-	public void visit(Sequence sequence, UniqueTokenKinds kinds) {
+	public void visit(Sequence sequence, FirstTokenKinds kinds) {
 		KindLinkNode link = new KindLinkNode();
 		for (Expression expr : sequence.children()) {
 			visit(expr, kinds);
@@ -101,17 +118,19 @@ public class UniqueTokenKindFinder extends FcgVisitor<UniqueTokenKindFinder.Uniq
 	}
 
 	@Override
-	public void visit(Identifier node, UniqueTokenKinds kinds,
+	public void visit(Identifier node, FirstTokenKinds kinds,
 	                  Quantifier quantifier, boolean returnIdentifier) {
 		if (rules.containsKey(node.id())) {
 			kinds.addAll(getUniqueTokenKinds(node.id()));
 		} else if (isLexerRule(node.id())) {
 			kinds.add(node.id());
+		} else {
+			System.out.println("Unsupported first token kind: " + node.id());
 		}
 	}
 
 	@Override
-	public void visit(StringLiteral node, UniqueTokenKinds kinds,
+	public void visit(StringLiteral node, FirstTokenKinds kinds,
 	                  Quantifier quantifier) {
 		kinds.add(tokenKindBuilder.getTokenKind(node.value()));
 	}

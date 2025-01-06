@@ -60,12 +60,25 @@ public class FcgParser {
 		return new Rule().name(name).expression(alternatives);
 	}
 
-	protected Alternatives parseAlternatives() {
-		Alternatives alternatives = new Alternatives();
-		do {
-			alternatives.add(parseSequence());
-		} while (optionalToken(BAR));
-		return alternatives;
+	/**
+	 * Parse alternatives.
+	 * @return .
+	 */
+	protected Expression parseAlternatives() {
+		Expression alternative1 = parseSequence();
+
+		// if only one alternative, just return it to simplify.
+		if (token.kind() != BAR) {
+			return alternative1;
+		} else {
+			Alternatives alternatives = new Alternatives();
+			alternatives.add(alternative1);
+			// add the rest of alternatives.
+			while (optionalToken(BAR)) {
+				alternatives.add(parseSequence());
+			}
+			return alternatives;
+		}
 	}
 
 	protected Expression parseSequence() {
@@ -107,11 +120,11 @@ public class FcgParser {
 		return new StringLiteral(lexeme);
 	}
 
-	protected ParenthesizedExpression parseParenExpression() {
+	protected Expression parseParenExpression() {
 		acceptToken(LEFT_PAREN);
 		Expression expr = parseAlternatives();
 		acceptToken(RIGHT_PAREN);
-		return new ParenthesizedExpression(expr);
+		return expr;
 	}
 
 	protected Expression parseRuleModifiers() {
